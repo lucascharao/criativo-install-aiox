@@ -1,0 +1,3724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLAUDE CODE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Press+Start+2P&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: system-ui, sans-serif;
+    user-select: none;
+    cursor: grab;
+  }
+
+  body.dragging,
+  body.dragging * {
+    cursor: grabbing !important;
+  }
+
+  /* Pannable world — Figma/Miro feel */
+  #world {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11vh 0 12vh;
+  }
+
+  /* ========================================
+     ARCADE BUTTON (uses claudecode-botao.png)
+     ======================================== */
+  .arcade-button {
+    position: relative;
+    width: 210px;
+    height: 210px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+    transition: transform 0.4s cubic-bezier(0.34, 1.32, 0.5, 1);
+  }
+
+  /* Cast shadow under the button — floating elevation */
+  .arcade-shadow {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    height: 36px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.95) 0%, transparent 70%);
+    filter: blur(8px);
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.5s ease, width 0.5s ease, height 0.5s ease, bottom 0.5s ease;
+  }
+
+  /* The button image itself */
+  .arcade-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    z-index: 1;
+    /* Elevated look — extra drop-shadow gives lift over the page */
+    filter: drop-shadow(0 12px 20px rgba(0,0,0,0.7));
+    transition:
+      transform 0.5s cubic-bezier(0.34, 1.32, 0.5, 1),
+      filter 0.5s ease;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* Glow overlay that sits ON TOP of the button when lit — radial bloom */
+  .arcade-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    background:
+      radial-gradient(
+        circle at 50% 50%,
+        rgba(255, 200, 130, 0.55) 0%,
+        rgba(255, 130, 40, 0.35) 30%,
+        rgba(255, 107, 26, 0.15) 55%,
+        transparent 80%
+      );
+    mix-blend-mode: screen;
+    transition: opacity 0.55s ease;
+  }
+
+  /* Hover — subtle lift */
+  .arcade-button:hover .arcade-img {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 14px 24px rgba(0,0,0,0.75));
+  }
+
+  /* PRESSED — sink down + ignite (light contained inside the button) */
+  .arcade-button.pressed .arcade-img {
+    transform: translateY(6px) scale(0.985);
+    filter:
+      drop-shadow(0 4px 10px rgba(0,0,0,0.6))
+      brightness(1.22) saturate(1.35) contrast(1.08);
+    animation: button-breathe 2.8s ease-in-out 0.5s infinite;
+  }
+
+  .arcade-button.pressed .arcade-glow {
+    opacity: 1;
+    animation: glow-breathe 2.8s ease-in-out 0.5s infinite;
+  }
+
+  .arcade-button.pressed .arcade-shadow {
+    width: 70%;
+    height: 24px;
+    bottom: -4px;
+    opacity: 0.6;
+  }
+
+  @keyframes button-breathe {
+    0%, 100% {
+      filter:
+        drop-shadow(0 4px 10px rgba(0,0,0,0.6))
+        brightness(1.22) saturate(1.35) contrast(1.08);
+    }
+    50% {
+      filter:
+        drop-shadow(0 4px 10px rgba(0,0,0,0.6))
+        brightness(1.32) saturate(1.45) contrast(1.1);
+    }
+  }
+
+  @keyframes glow-breathe {
+    0%, 100% { opacity: 0.85; }
+    50% { opacity: 1; }
+  }
+
+  /* ========================================
+     LIGHT PATH (single line of light)
+     ======================================== */
+  .light-path-wrap {
+    position: absolute;
+    top: calc(11vh + 215px);
+    bottom: calc(12vh + 215px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .light-path {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .light-line {
+    fill: none;
+    stroke: #ff6b1a;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #ff8533)
+      drop-shadow(0 0 8px #ff6b1a)
+      drop-shadow(0 0 20px rgba(255, 107, 26, 0.7))
+      drop-shadow(0 0 40px rgba(255, 107, 26, 0.4));
+  }
+
+  .light-path-wrap.drawing .light-line {
+    opacity: 1;
+    animation: drawPath 1.8s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes drawPath {
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Glowing tip — leading particle */
+  .light-tip {
+    fill: #fff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #ffd58a)
+      drop-shadow(0 0 10px #ff8533)
+      drop-shadow(0 0 22px #ff6b1a);
+  }
+
+  .light-path-wrap.drawing .light-tip {
+    opacity: 1;
+    animation: tipFade 1.8s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes tipFade {
+    0% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ========================================
+     INSTALL BUTTON (uses Instalação.png)
+     Only the WORD lights up — not the whole button
+     ======================================== */
+  .install-button {
+    position: relative;
+    width: 320px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+    z-index: 5;
+    display: block;
+  }
+
+  /* Cast shadow under button */
+  .install-shadow {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 85%;
+    height: 28px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, transparent 70%);
+    filter: blur(7px);
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.5s ease, width 0.5s ease, bottom 0.5s ease;
+  }
+
+  /* Button image — aggressive crop + lighten blend kills any residual black bg */
+  .install-img {
+    position: relative;
+    width: 100%;
+    height: auto;
+    display: block;
+    z-index: 1;
+    clip-path: inset(18% 9% 18% 9% round 11%);
+    mix-blend-mode: lighten;
+    filter: brightness(0.65) saturate(0.7) contrast(1.0);
+    transition:
+      filter 0.7s ease,
+      transform 0.4s cubic-bezier(0.34, 1.32, 0.5, 1);
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* Neon word — sits over the embossed text */
+  .word-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Quicksand', system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 44px;
+    letter-spacing: -0.01em;
+    color: transparent;
+    -webkit-text-stroke: 0 transparent;
+    pointer-events: none;
+    user-select: none;
+    z-index: 3;
+    white-space: nowrap;
+    line-height: 1;
+    transition:
+      color 0.7s ease,
+      text-shadow 0.7s ease,
+      -webkit-text-stroke-color 0.7s ease,
+      -webkit-text-stroke-width 0.7s ease;
+  }
+
+  /* ===== LIT STATE — image slightly brightens, word ignites ===== */
+  .install-button.lit .install-img {
+    filter: brightness(0.95) saturate(1.05) contrast(1.0);
+  }
+
+  .install-button.lit .word-glow {
+    color: #f0ffe0;
+    -webkit-text-stroke: 0.6px rgba(200, 255, 160, 0.95);
+    text-shadow:
+      /* Inner crisp tube core */
+      0 0 1px #ffffff,
+      0 0 3px #ffffff,
+      /* Bright halo around each letter */
+      0 0 7px #c8ff96,
+      0 0 14px #8aee78,
+      /* Mid bloom */
+      0 0 24px #6ed85e,
+      0 0 40px rgba(110, 216, 94, 0.75),
+      /* Ambient bloom cast on surface */
+      0 0 70px rgba(110, 216, 94, 0.5),
+      0 0 110px rgba(110, 216, 94, 0.25);
+  }
+
+  /* Steady breathing pulse once stable */
+  .install-button.lit:not(.just-lit) .word-glow {
+    animation: word-pulse 3.4s ease-in-out infinite;
+  }
+
+  @keyframes word-pulse {
+    0%, 100% {
+      text-shadow:
+        0 0 1px #ffffff,
+        0 0 3px #ffffff,
+        0 0 7px #c8ff96,
+        0 0 14px #8aee78,
+        0 0 24px #6ed85e,
+        0 0 40px rgba(110, 216, 94, 0.75),
+        0 0 70px rgba(110, 216, 94, 0.5),
+        0 0 110px rgba(110, 216, 94, 0.25);
+    }
+    50% {
+      text-shadow:
+        0 0 1px #ffffff,
+        0 0 4px #ffffff,
+        0 0 9px #d4ffaa,
+        0 0 18px #a8f298,
+        0 0 32px #6ed85e,
+        0 0 52px rgba(110, 216, 94, 0.85),
+        0 0 90px rgba(110, 216, 94, 0.6),
+        0 0 130px rgba(110, 216, 94, 0.35);
+    }
+  }
+
+  /* Hover lift */
+  .install-button:hover .install-img {
+    transform: translateY(-2px);
+  }
+
+  /* Press feedback */
+  .install-button:active .install-img {
+    transform: translateY(3px) scale(0.99);
+  }
+
+  /* Realistic neon ignition — flickers like a real tube starting */
+  .install-button.just-lit .word-glow {
+    animation: word-ignite 0.85s ease-out;
+  }
+
+  @keyframes word-ignite {
+    0% {
+      color: transparent;
+      -webkit-text-stroke: 0 transparent;
+      text-shadow: none;
+    }
+    8% {
+      color: #ffffff;
+      -webkit-text-stroke: 0.5px rgba(220, 255, 200, 0.95);
+      text-shadow: 0 0 2px #fff, 0 0 8px #c8ff96, 0 0 20px #6ed85e;
+    }
+    14% {
+      color: transparent;
+      -webkit-text-stroke: 0 transparent;
+      text-shadow: none;
+    }
+    22% {
+      color: #f0ffe0;
+      -webkit-text-stroke: 0.4px rgba(200, 255, 160, 0.85);
+      text-shadow: 0 0 2px #fff, 0 0 6px #a8ff80, 0 0 14px #6ed85e;
+    }
+    27% {
+      color: transparent;
+      -webkit-text-stroke: 0 transparent;
+      text-shadow: none;
+    }
+    38% {
+      /* Half-power hold */
+      color: #d4ffaa;
+      -webkit-text-stroke: 0.5px rgba(200, 255, 160, 0.85);
+      text-shadow:
+        0 0 2px #fff,
+        0 0 8px #c8ff96,
+        0 0 18px #6ed85e,
+        0 0 36px rgba(110, 216, 94, 0.55);
+    }
+    100% {
+      color: #f0ffe0;
+      -webkit-text-stroke: 0.6px rgba(200, 255, 160, 0.95);
+      text-shadow:
+        0 0 1px #ffffff,
+        0 0 3px #ffffff,
+        0 0 7px #c8ff96,
+        0 0 14px #8aee78,
+        0 0 24px #6ed85e,
+        0 0 40px rgba(110, 216, 94, 0.75),
+        0 0 70px rgba(110, 216, 94, 0.5),
+        0 0 110px rgba(110, 216, 94, 0.25);
+    }
+  }
+
+  /* ========================================
+     LEFT BRANCH (opens when install clicked)
+     ======================================== */
+  .left-branch-wrap {
+    position: absolute;
+    right: calc(50% + 130px);
+    bottom: calc(12vh + 60px);
+    width: 300px;
+    height: 200px;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .left-branch-wrap.drawing {
+    opacity: 1;
+  }
+
+  .left-branch-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .left-branch-line {
+    fill: none;
+    stroke: #6ed85e;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 800;
+    stroke-dashoffset: 800;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #a8f298)
+      drop-shadow(0 0 8px #6ed85e)
+      drop-shadow(0 0 20px rgba(110, 216, 94, 0.65))
+      drop-shadow(0 0 40px rgba(110, 216, 94, 0.3));
+  }
+
+  .left-branch-wrap.drawing .left-branch-line {
+    opacity: 1;
+    animation: drawLeftPath 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes drawLeftPath {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .left-branch-node {
+    fill: #8aee78;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #8aee78)
+      drop-shadow(0 0 12px rgba(110, 216, 94, 0.7));
+  }
+
+  .left-branch-wrap.drawing .left-branch-node {
+    animation: leftNodePop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards;
+  }
+
+  @keyframes leftNodePop {
+    0%   { opacity: 0; }
+    60%  { opacity: 1; }
+    100% { opacity: 0.95; }
+  }
+
+  .left-branch-tip {
+    fill: #fff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #d8ffc8)
+      drop-shadow(0 0 10px #8aee78)
+      drop-shadow(0 0 22px #6ed85e);
+  }
+
+  .left-branch-wrap.drawing .left-branch-tip {
+    opacity: 1;
+    animation: leftTipFade 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes leftTipFade {
+    0%   { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ========================================
+     RIGHT BRANCH (mirror — opens with install)
+     ======================================== */
+  .right-branch-wrap {
+    position: absolute;
+    left: calc(50% + 130px);
+    bottom: calc(12vh + 60px);
+    width: 300px;
+    height: 200px;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .right-branch-wrap.drawing { opacity: 1; }
+
+  .right-branch-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .right-branch-line {
+    fill: none;
+    stroke: #6ed85e;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 800;
+    stroke-dashoffset: 800;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #a8f298)
+      drop-shadow(0 0 8px #6ed85e)
+      drop-shadow(0 0 20px rgba(110, 216, 94, 0.65))
+      drop-shadow(0 0 40px rgba(110, 216, 94, 0.3));
+  }
+
+  .right-branch-wrap.drawing .right-branch-line {
+    opacity: 1;
+    animation: drawRightPath 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes drawRightPath {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .right-branch-node {
+    fill: #8aee78;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #8aee78)
+      drop-shadow(0 0 12px rgba(110, 216, 94, 0.7));
+  }
+
+  .right-branch-wrap.drawing .right-branch-node {
+    animation: leftNodePop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards;
+  }
+
+  .right-branch-tip {
+    fill: #fff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #d8ffc8)
+      drop-shadow(0 0 10px #8aee78)
+      drop-shadow(0 0 22px #6ed85e);
+  }
+
+  .right-branch-wrap.drawing .right-branch-tip {
+    opacity: 1;
+    animation: leftTipFade 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  /* ========================================
+     NODE.JS LOGO (end of LEFT branch)
+     ======================================== */
+  .node-logo-wrap {
+    position: absolute;
+    left: 12px;
+    top: 92px;
+    transform: translate(-100%, -50%);
+    width: 160px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.4s ease;
+    z-index: 6;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .left-branch-wrap.drawing .node-logo-wrap {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.6s ease 1.3s, transform 0.4s ease;
+  }
+
+  .node-logo-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+    /* Multiply blend to drop any white bg + cast a soft green glow */
+    mix-blend-mode: screen;
+    filter:
+      brightness(0.95) contrast(1.05)
+      drop-shadow(0 8px 18px rgba(0,0,0,0.7))
+      drop-shadow(0 0 12px rgba(110, 216, 94, 0.15));
+    transition: filter 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+
+  .node-logo-wrap:hover {
+    transform: translate(-100%, -50%) translateY(-4px);
+  }
+
+  .node-logo-wrap:hover img {
+    filter:
+      brightness(1.08) contrast(1.08)
+      drop-shadow(0 12px 24px rgba(0,0,0,0.7))
+      drop-shadow(0 0 22px rgba(110, 216, 94, 0.4));
+  }
+
+  .node-logo-wrap.lit img {
+    filter:
+      brightness(1.18) contrast(1.1) saturate(1.25)
+      drop-shadow(0 8px 18px rgba(0,0,0,0.6))
+      drop-shadow(0 0 16px rgba(110, 216, 94, 0.8))
+      drop-shadow(0 0 36px rgba(110, 216, 94, 0.55))
+      drop-shadow(0 0 60px rgba(110, 216, 94, 0.3));
+  }
+
+  /* ========================================
+     STEP BADGES (sequence indicators)
+     ======================================== */
+  .step-badge {
+    position: absolute;
+    top: -10px;
+    right: -12px;
+    min-width: 38px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 14px;
+    background: rgba(110, 216, 94, 0.92);
+    color: #050d04;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 12px rgba(110, 216, 94, 0.65),
+      0 0 24px rgba(110, 216, 94, 0.35);
+    z-index: 5;
+    white-space: nowrap;
+    transition: all 0.5s ease;
+  }
+
+  /* Active step pulse (Node = step 1, always active when visible) */
+  .node-logo-wrap .step-badge {
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes badge-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 12px rgba(110, 216, 94, 0.65),
+        0 0 24px rgba(110, 216, 94, 0.35);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow:
+        0 0 20px rgba(150, 240, 130, 1),
+        0 0 40px rgba(110, 216, 94, 0.6);
+      transform: scale(1.08);
+    }
+  }
+
+  /* Locked monitor — dimmed + grey badge + not clickable */
+  .monitor-wrap.locked {
+    cursor: not-allowed;
+  }
+
+  .monitor-wrap.locked img {
+    filter:
+      brightness(0.35) grayscale(0.75)
+      drop-shadow(0 10px 18px rgba(0,0,0,0.55))
+      drop-shadow(0 0 8px rgba(50, 50, 50, 0.2));
+  }
+
+  .monitor-wrap.locked:hover {
+    transform: translate(0, -50%);
+  }
+
+  .monitor-wrap.locked:hover img {
+    filter:
+      brightness(0.35) grayscale(0.75)
+      drop-shadow(0 10px 18px rgba(0,0,0,0.55))
+      drop-shadow(0 0 8px rgba(50, 50, 50, 0.2));
+  }
+
+  .monitor-wrap.locked .step-badge {
+    background: rgba(70, 70, 70, 0.75);
+    color: rgba(200, 200, 200, 0.55);
+    box-shadow: none;
+    animation: none;
+  }
+
+  .monitor-wrap.locked .monitor-hint {
+    color: rgba(170, 170, 170, 0.55);
+    text-shadow: none;
+    animation: none;
+  }
+
+  /* Shake when user clicks locked monitor */
+  @keyframes shake-locked {
+    0%, 100% { transform: translate(0, -50%); }
+    20% { transform: translate(0, -50%) translateX(-6px); }
+    40% { transform: translate(0, -50%) translateX(6px); }
+    60% { transform: translate(0, -50%) translateX(-4px); }
+    80% { transform: translate(0, -50%) translateX(4px); }
+  }
+
+  .monitor-wrap.shake {
+    animation: shake-locked 0.45s ease;
+  }
+
+  /* Unlock pulse — bright flash when monitor becomes available */
+  @keyframes unlock-pulse {
+    0% {
+      filter:
+        brightness(0.35) grayscale(0.75)
+        drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+    }
+    40% {
+      filter:
+        brightness(1.4) saturate(1.3)
+        drop-shadow(0 10px 18px rgba(0,0,0,0.7))
+        drop-shadow(0 0 30px rgba(110, 216, 94, 0.7));
+    }
+    100% {
+      filter:
+        drop-shadow(0 12px 22px rgba(0,0,0,0.75))
+        drop-shadow(0 0 14px rgba(110, 216, 94, 0.15));
+    }
+  }
+
+  .monitor-wrap.unlocking img {
+    animation: unlock-pulse 0.9s ease-out;
+  }
+
+  .monitor-wrap.unlocking .step-badge {
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+
+  /* ========================================
+     CRT MONITOR (at end of RIGHT branch)
+     ======================================== */
+  .monitor-wrap {
+    position: absolute;
+    left: 288px;
+    top: 92px;
+    transform: translate(0, -50%);
+    width: 170px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.4s ease;
+    z-index: 6;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .right-branch-wrap.drawing .monitor-wrap {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.6s ease 1.3s, transform 0.4s ease;
+  }
+
+  .monitor-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter:
+      drop-shadow(0 12px 22px rgba(0,0,0,0.75))
+      drop-shadow(0 0 14px rgba(110, 216, 94, 0.15));
+    transition: filter 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+
+  .monitor-wrap:hover {
+    transform: translate(0, -50%) translateY(-4px);
+  }
+
+  .monitor-wrap:hover img {
+    filter:
+      drop-shadow(0 16px 28px rgba(0,0,0,0.85))
+      drop-shadow(0 0 22px rgba(110, 216, 94, 0.35))
+      brightness(1.08);
+  }
+
+  .monitor-hint {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: rgba(180, 240, 160, 0.75);
+    text-shadow: 0 0 8px rgba(110, 216, 94, 0.55);
+    white-space: nowrap;
+    animation: hint-blink 1.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes hint-blink {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+
+  /* ========================================
+     TV STATIC OVERLAY (fullscreen)
+     ======================================== */
+  .tv-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #000;
+    opacity: 0;
+    visibility: hidden;
+    cursor: pointer;
+    transition: opacity 0.5s ease, visibility 0s linear 0.5s;
+    overflow: hidden;
+  }
+
+  .tv-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease, visibility 0s linear;
+  }
+
+  .tv-static {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    opacity: 1;
+    transition: opacity 1s ease;
+  }
+
+  .tv-overlay.tuned .tv-static {
+    opacity: 0.1;
+  }
+
+  .tv-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(0,0,0,0.4) 2px,
+      rgba(0,0,0,0.4) 4px
+    );
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: multiply;
+  }
+
+  /* Rolling horizontal sweep (analog distortion) */
+  .tv-sweep {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8vh;
+    top: -8vh;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(255,255,255,0.04) 40%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0.04) 60%,
+      transparent 100%);
+    pointer-events: none;
+    z-index: 3;
+    animation: tv-sweep 8s linear infinite;
+  }
+
+  @keyframes tv-sweep {
+    to { top: 108vh; }
+  }
+
+  .tv-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.75) 95%);
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* Command center */
+  .tv-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.6s ease 0.4s;
+    pointer-events: none;
+  }
+
+  .tv-overlay.tuned .tv-screen {
+    opacity: 1;
+  }
+
+  .tv-command {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: clamp(18px, 2.4vw, 32px);
+    font-weight: 500;
+    color: #d8ffd8;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    padding: 32px 56px;
+    background: rgba(0, 25, 0, 0.45);
+    border: 1px solid rgba(150, 255, 150, 0.4);
+    border-radius: 4px;
+    text-shadow:
+      0 0 4px rgba(180, 255, 180, 0.85),
+      0 0 12px rgba(120, 255, 120, 0.55),
+      0 0 28px rgba(80, 220, 80, 0.35);
+    box-shadow:
+      0 0 30px rgba(110, 216, 94, 0.25),
+      inset 0 0 20px rgba(110, 216, 94, 0.1);
+    position: relative;
+  }
+
+  .tv-command::before,
+  .tv-command::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(150, 255, 150, 0.8);
+    box-shadow: 0 0 8px rgba(110, 216, 94, 0.6);
+  }
+  .tv-command::before {
+    top: -2px; left: -2px;
+    border-right: none; border-bottom: none;
+  }
+  .tv-command::after {
+    bottom: -2px; right: -2px;
+    border-left: none; border-top: none;
+  }
+
+  .cmd-prefix {
+    color: #66dd66;
+    margin-right: 16px;
+    text-shadow:
+      0 0 4px rgba(120, 255, 120, 0.8),
+      0 0 10px rgba(80, 220, 80, 0.5);
+  }
+
+  .cmd-text {
+    color: #e0ffe0;
+  }
+
+  .cmd-cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.05em;
+    background: #c8ffc8;
+    margin-left: 6px;
+    vertical-align: text-bottom;
+    box-shadow: 0 0 8px rgba(180, 255, 180, 0.9);
+    animation: cursor-blink 1s steps(2) infinite;
+  }
+
+  @keyframes cursor-blink {
+    50% { opacity: 0; }
+  }
+
+  .tv-hint {
+    position: absolute;
+    bottom: 6vh;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.45em;
+    color: rgba(200, 255, 200, 0.65);
+    text-shadow: 0 0 8px rgba(150, 255, 150, 0.45);
+    text-transform: uppercase;
+    z-index: 6;
+    animation: hint-blink 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* CRT action buttons (Copy + Back) */
+  .tv-actions {
+    display: flex;
+    gap: 16px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.6s ease 1s, transform 0.6s ease 1s;
+  }
+
+  .tv-overlay.tuned .tv-actions,
+  .node-overlay.active .tv-actions,
+  .aiox-cmd-overlay.active .tv-actions {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .tv-btn {
+    position: relative;
+    pointer-events: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    padding: 13px 24px;
+    background: rgba(0, 25, 0, 0.55);
+    border: 1px solid rgba(150, 255, 150, 0.5);
+    color: #d8ffd8;
+    cursor: pointer;
+    text-shadow:
+      0 0 4px rgba(180, 255, 180, 0.7),
+      0 0 10px rgba(120, 255, 120, 0.5);
+    box-shadow:
+      0 0 18px rgba(110, 216, 94, 0.2),
+      inset 0 0 14px rgba(110, 216, 94, 0.08);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    outline: none;
+  }
+
+  /* Corner brackets */
+  .tv-btn::before,
+  .tv-btn::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border: 1px solid rgba(180, 255, 180, 0.85);
+    box-shadow: 0 0 6px rgba(110, 216, 94, 0.6);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .tv-btn::before {
+    top: -2px; left: -2px;
+    border-right: none; border-bottom: none;
+  }
+  .tv-btn::after {
+    bottom: -2px; right: -2px;
+    border-left: none; border-top: none;
+  }
+
+  .tv-btn:hover {
+    background: rgba(40, 180, 40, 0.3);
+    border-color: #a8ffa8;
+    color: #ffffff;
+    box-shadow:
+      0 0 30px rgba(110, 216, 94, 0.55),
+      inset 0 0 22px rgba(110, 216, 94, 0.22);
+    text-shadow:
+      0 0 6px rgba(220, 255, 220, 0.95),
+      0 0 14px rgba(150, 255, 150, 0.75);
+    letter-spacing: 0.4em;
+  }
+
+  .tv-btn:active {
+    transform: translateY(1px);
+  }
+
+  .tv-btn .icon {
+    font-size: 14px;
+    line-height: 1;
+    display: inline-block;
+  }
+
+  .tv-btn.copied {
+    background: rgba(80, 220, 80, 0.4);
+    border-color: #d8ffd8;
+    color: #ffffff;
+    box-shadow:
+      0 0 40px rgba(110, 216, 94, 0.7),
+      inset 0 0 24px rgba(180, 255, 180, 0.3);
+  }
+
+  /* ========================================
+     NODE.JS INSTALL OVERLAY
+     ======================================== */
+  .node-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background:
+      radial-gradient(ellipse at center, rgba(40, 90, 30, 0.2) 0%, transparent 65%),
+      linear-gradient(135deg, #060f04 0%, #000000 80%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .node-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.6s ease, visibility 0s linear;
+  }
+
+  .node-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(110, 216, 94, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 216, 94, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    background-position: center;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+            mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .node-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: opacity 0.6s ease 0.2s, transform 0.7s cubic-bezier(0.34, 1.32, 0.5, 1) 0.2s;
+    z-index: 2;
+  }
+
+  .node-overlay.active .node-panel {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .node-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: #d4ffaa;
+    text-shadow: 0 0 12px rgba(110, 216, 94, 0.6);
+    text-align: center;
+  }
+
+  .node-title::after {
+    content: '';
+    display: block;
+    width: 80%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(110, 216, 94, 0.7), transparent);
+    margin: 14px auto 0;
+  }
+
+  .os-tabs {
+    display: flex;
+    gap: 10px;
+  }
+
+  .os-tab {
+    position: relative;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    padding: 13px 26px;
+    background: rgba(20, 50, 15, 0.45);
+    border: 1px solid rgba(150, 200, 120, 0.4);
+    color: rgba(200, 230, 170, 0.7);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+    pointer-events: auto;
+  }
+
+  .os-tab::before,
+  .os-tab::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border: 1px solid currentColor;
+    opacity: 0.65;
+  }
+  .os-tab::before {
+    top: -1px; left: -1px;
+    border-right: none; border-bottom: none;
+  }
+  .os-tab::after {
+    bottom: -1px; right: -1px;
+    border-left: none; border-top: none;
+  }
+
+  .os-tab:hover {
+    color: rgba(220, 255, 180, 1);
+    border-color: rgba(180, 230, 150, 0.8);
+    background: rgba(60, 130, 50, 0.35);
+  }
+
+  .os-tab.active {
+    background: rgba(110, 216, 94, 0.4);
+    border-color: #a8eb8a;
+    color: #ffffff;
+    box-shadow:
+      0 0 22px rgba(110, 216, 94, 0.45),
+      inset 0 0 14px rgba(110, 216, 94, 0.22);
+    text-shadow: 0 0 8px rgba(180, 255, 150, 0.7);
+  }
+
+  /* ========================================
+     AIOX SCENE (revealed after marquee AIOX-CTA click)
+     ======================================== */
+  .aiox-scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13vh 0 12vh;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.8s ease, visibility 0s linear 0.8s;
+  }
+
+  .aiox-scene.revealed {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.8s ease, visibility 0s linear;
+  }
+
+  /* AIOX arcade button — uses aiox-logo.png directly (no CSS bezel/disc) */
+  .aiox-arcade-button {
+    position: relative;
+    width: 320px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+    transition: transform 0.4s cubic-bezier(0.34, 1.32, 0.5, 1);
+  }
+
+  .aiox-arcade-shadow {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 78%;
+    height: 24px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, transparent 70%);
+    filter: blur(7px);
+    pointer-events: none;
+    z-index: 0;
+    transition: width 0.5s, opacity 0.4s;
+  }
+
+  /* Image crops the black background + lighten blend kills residual black */
+  .aiox-arcade-img {
+    position: relative;
+    width: 100%;
+    height: auto;
+    display: block;
+    z-index: 1;
+    clip-path: inset(8% 5% 8% 5% round 9%);
+    mix-blend-mode: lighten;
+    filter: brightness(0.75) saturate(0.85) contrast(1.0);
+    transition:
+      filter 0.6s ease,
+      transform 0.4s cubic-bezier(0.34, 1.32, 0.5, 1);
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+  }
+
+  /* Hover — subtle lift, slightly brighter letters */
+  .aiox-arcade-button:hover .aiox-arcade-img {
+    transform: translateY(-2px);
+    filter: brightness(0.9) saturate(0.95) contrast(1.02);
+  }
+
+  /* PRESSED — only the letters get brighter/more saturated (no halo on button) */
+  .aiox-arcade-button.pressed .aiox-arcade-img {
+    transform: translateY(3px) scale(0.99);
+    filter: brightness(1.4) saturate(1.5) contrast(1.08);
+    animation: aiox-letters-breathe 2.8s ease-in-out 0.4s infinite;
+  }
+
+  @keyframes aiox-letters-breathe {
+    0%, 100% {
+      filter: brightness(1.4) saturate(1.5) contrast(1.08);
+    }
+    50% {
+      filter: brightness(1.6) saturate(1.65) contrast(1.12);
+    }
+  }
+
+  .aiox-arcade-button.pressed .aiox-arcade-shadow {
+    width: 60%;
+    opacity: 0.7;
+  }
+
+  /* AIOX LIGHT PATH — lime green */
+  .aiox-path-wrap {
+    position: absolute;
+    top: calc(13vh + 230px);
+    bottom: calc(12vh + 215px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .aiox-path-wrap svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .aiox-light-line {
+    fill: none;
+    stroke: #d4ff00;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #f0ff66)
+      drop-shadow(0 0 8px #d4ff00)
+      drop-shadow(0 0 20px rgba(212, 255, 0, 0.7))
+      drop-shadow(0 0 40px rgba(212, 255, 0, 0.4));
+  }
+
+  .aiox-path-wrap.drawing .aiox-light-line {
+    opacity: 1;
+    animation: drawPath 1.8s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  .aiox-light-tip {
+    fill: #ffffff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #f0ffaa)
+      drop-shadow(0 0 10px #d4ff00)
+      drop-shadow(0 0 22px #d4ff00);
+  }
+
+  .aiox-path-wrap.drawing .aiox-light-tip {
+    opacity: 1;
+    animation: tipFade 1.8s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  /* AIOX INSTALL BUTTON — lime green word glow override */
+  .aiox-scene .install-button.lit .word-glow {
+    color: #f8ffe0;
+    -webkit-text-stroke: 0.6px rgba(220, 255, 160, 0.95);
+    text-shadow:
+      0 0 1px #ffffff,
+      0 0 3px #ffffff,
+      0 0 7px #f0ff66,
+      0 0 14px #e4ff00,
+      0 0 24px #d4ff00,
+      0 0 40px rgba(212, 255, 0, 0.75),
+      0 0 70px rgba(212, 255, 0, 0.5),
+      0 0 110px rgba(212, 255, 0, 0.25);
+  }
+
+  .aiox-scene .install-button.lit:not(.just-lit) .word-glow {
+    animation: word-pulse-aiox 3.4s ease-in-out infinite;
+  }
+
+  .aiox-scene .install-button.just-lit .word-glow {
+    animation: word-ignite-aiox 0.85s ease-out;
+  }
+
+  @keyframes word-pulse-aiox {
+    0%, 100% {
+      text-shadow:
+        0 0 1px #ffffff,
+        0 0 3px #ffffff,
+        0 0 7px #f0ff66,
+        0 0 14px #e4ff00,
+        0 0 24px #d4ff00,
+        0 0 40px rgba(212, 255, 0, 0.75),
+        0 0 70px rgba(212, 255, 0, 0.5),
+        0 0 110px rgba(212, 255, 0, 0.25);
+    }
+    50% {
+      text-shadow:
+        0 0 1px #ffffff,
+        0 0 4px #ffffff,
+        0 0 9px #f4ffaa,
+        0 0 18px #ecff66,
+        0 0 32px #d4ff00,
+        0 0 52px rgba(212, 255, 0, 0.85),
+        0 0 90px rgba(212, 255, 0, 0.6),
+        0 0 130px rgba(212, 255, 0, 0.35);
+    }
+  }
+
+  @keyframes word-ignite-aiox {
+    0% {
+      color: transparent;
+      -webkit-text-stroke: 0 transparent;
+      text-shadow: none;
+    }
+    8% {
+      color: #ffffff;
+      -webkit-text-stroke: 0.5px rgba(240, 255, 200, 0.95);
+      text-shadow: 0 0 2px #fff, 0 0 8px #f0ff66, 0 0 20px #d4ff00;
+    }
+    14% { color: transparent; text-shadow: none; -webkit-text-stroke: 0 transparent; }
+    22% {
+      color: #f8ffe0;
+      -webkit-text-stroke: 0.4px rgba(220, 255, 160, 0.85);
+      text-shadow: 0 0 2px #fff, 0 0 6px #f0ff66, 0 0 14px #d4ff00;
+    }
+    27% { color: transparent; text-shadow: none; -webkit-text-stroke: 0 transparent; }
+    38% {
+      color: #ecff88;
+      -webkit-text-stroke: 0.5px rgba(220, 255, 160, 0.85);
+      text-shadow:
+        0 0 2px #fff,
+        0 0 8px #f0ff66,
+        0 0 18px #d4ff00,
+        0 0 36px rgba(212, 255, 0, 0.55);
+    }
+    100% {
+      color: #f8ffe0;
+      -webkit-text-stroke: 0.6px rgba(220, 255, 160, 0.95);
+      text-shadow:
+        0 0 1px #ffffff,
+        0 0 3px #ffffff,
+        0 0 7px #f0ff66,
+        0 0 14px #e4ff00,
+        0 0 24px #d4ff00,
+        0 0 40px rgba(212, 255, 0, 0.75),
+        0 0 70px rgba(212, 255, 0, 0.5),
+        0 0 110px rgba(212, 255, 0, 0.25);
+    }
+  }
+
+  /* AIOX INSTALL command path — goes DOWN from install button */
+  .aiox-cmd-path-wrap {
+    position: absolute;
+    bottom: 1.5vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 9vh;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .aiox-cmd-path-wrap svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .aiox-cmd-line {
+    fill: none;
+    stroke: #d4ff00;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 500;
+    stroke-dashoffset: 500;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #f0ff66)
+      drop-shadow(0 0 8px #d4ff00)
+      drop-shadow(0 0 20px rgba(212, 255, 0, 0.7))
+      drop-shadow(0 0 40px rgba(212, 255, 0, 0.4));
+  }
+
+  .aiox-cmd-path-wrap.drawing .aiox-cmd-line {
+    opacity: 1;
+    animation: drawAioxCmdPath 1s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes drawAioxCmdPath {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .aiox-cmd-tip {
+    fill: #ffffff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #f0ffaa)
+      drop-shadow(0 0 10px #d4ff00)
+      drop-shadow(0 0 22px #d4ff00);
+  }
+
+  .aiox-cmd-path-wrap.drawing .aiox-cmd-tip {
+    opacity: 1;
+    animation: aioxCmdTipFade 1s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  @keyframes aioxCmdTipFade {
+    0%   { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ========================================
+     AIOX INSTALL COMMAND OVERLAY (lime themed)
+     ======================================== */
+  .aiox-cmd-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background:
+      radial-gradient(ellipse at center, rgba(80, 130, 30, 0.2) 0%, transparent 65%),
+      linear-gradient(135deg, #0a1404 0%, #000000 80%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .aiox-cmd-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.6s ease, visibility 0s linear;
+  }
+
+  .aiox-cmd-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(212, 255, 0, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 255, 0, 0.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+            mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .aiox-cmd-overlay .node-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition:
+      opacity 0.6s ease 0.2s,
+      transform 0.7s cubic-bezier(0.34, 1.32, 0.5, 1) 0.2s;
+    z-index: 2;
+  }
+
+  .aiox-cmd-overlay.active .node-panel {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .aiox-cmd-overlay .node-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: #ecffaa;
+    text-shadow: 0 0 12px rgba(212, 255, 0, 0.65);
+    text-align: center;
+  }
+
+  .aiox-cmd-overlay .node-title::after {
+    content: '';
+    display: block;
+    width: 80%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212, 255, 0, 0.7), transparent);
+    margin: 14px auto 0;
+  }
+
+  /* Override terminal box to lime */
+  .aiox-cmd-overlay .tv-command {
+    color: #f4ffd0;
+    background: rgba(15, 28, 0, 0.5);
+    border-color: rgba(220, 255, 100, 0.55);
+    text-shadow:
+      0 0 4px rgba(220, 255, 180, 0.9),
+      0 0 12px rgba(212, 255, 0, 0.6),
+      0 0 28px rgba(212, 255, 0, 0.35);
+    box-shadow:
+      0 0 30px rgba(212, 255, 0, 0.3),
+      inset 0 0 20px rgba(212, 255, 0, 0.1);
+  }
+
+  .aiox-cmd-overlay .tv-command::before,
+  .aiox-cmd-overlay .tv-command::after {
+    border-color: rgba(220, 255, 100, 0.85);
+    box-shadow: 0 0 8px rgba(212, 255, 0, 0.65);
+  }
+
+  .aiox-cmd-overlay .cmd-prefix {
+    color: #d4ff66;
+    text-shadow:
+      0 0 4px rgba(220, 255, 100, 0.85),
+      0 0 10px rgba(212, 255, 0, 0.55);
+  }
+
+  .aiox-cmd-overlay .cmd-text {
+    color: #f4ffd0;
+  }
+
+  .aiox-cmd-overlay .cmd-cursor {
+    background: #ecffaa;
+    box-shadow: 0 0 8px rgba(220, 255, 130, 0.9);
+  }
+
+  /* Override CRT buttons to lime */
+  .aiox-cmd-overlay .tv-btn {
+    background: rgba(15, 28, 0, 0.55);
+    border-color: rgba(220, 255, 100, 0.55);
+    color: #f4ffd0;
+    text-shadow:
+      0 0 4px rgba(220, 255, 180, 0.75),
+      0 0 10px rgba(212, 255, 0, 0.5);
+    box-shadow:
+      0 0 18px rgba(212, 255, 0, 0.22),
+      inset 0 0 14px rgba(212, 255, 0, 0.08);
+  }
+
+  .aiox-cmd-overlay .tv-btn::before,
+  .aiox-cmd-overlay .tv-btn::after {
+    border-color: rgba(220, 255, 100, 0.9);
+    box-shadow: 0 0 6px rgba(212, 255, 0, 0.6);
+  }
+
+  .aiox-cmd-overlay .tv-btn:hover {
+    background: rgba(60, 120, 0, 0.32);
+    border-color: #d4ff66;
+    color: #ffffff;
+    box-shadow:
+      0 0 30px rgba(212, 255, 0, 0.55),
+      inset 0 0 22px rgba(212, 255, 0, 0.22);
+  }
+
+  .aiox-cmd-overlay .tv-btn.copied {
+    background: rgba(180, 220, 50, 0.4);
+    border-color: #f0ffd0;
+    color: #ffffff;
+    box-shadow:
+      0 0 40px rgba(212, 255, 0, 0.7),
+      inset 0 0 24px rgba(220, 255, 180, 0.3);
+  }
+
+  /* ========================================
+     AIOX TUTORIAL OVERLAY (step-by-step installer)
+     ======================================== */
+  .aiox-tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background:
+      radial-gradient(ellipse at center, rgba(80, 130, 30, 0.2) 0%, transparent 65%),
+      linear-gradient(135deg, #0a1404 0%, #000000 80%);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding: 30px 20px;
+  }
+
+  .aiox-tutorial-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.6s ease, visibility 0s linear;
+  }
+
+  .aiox-tutorial-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(212, 255, 0, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 255, 0, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+            mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .tutorial-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    width: min(820px, 92vw);
+    max-height: 90vh;
+    padding: 36px 48px;
+    background: rgba(15, 28, 0, 0.55);
+    border: 1px solid rgba(220, 255, 100, 0.5);
+    border-radius: 6px;
+    transform: translateY(20px);
+    opacity: 0;
+    transition:
+      opacity 0.6s ease 0.2s,
+      transform 0.7s cubic-bezier(0.34, 1.32, 0.5, 1) 0.2s;
+    z-index: 2;
+    box-shadow:
+      0 0 30px rgba(212, 255, 0, 0.3),
+      inset 0 0 20px rgba(212, 255, 0, 0.08);
+  }
+
+  .aiox-tutorial-overlay.active .tutorial-panel {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .tutorial-panel::before,
+  .tutorial-panel::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 1px solid rgba(220, 255, 100, 0.9);
+    box-shadow: 0 0 8px rgba(212, 255, 0, 0.65);
+  }
+  .tutorial-panel::before {
+    top: -2px; left: -2px;
+    border-right: none; border-bottom: none;
+  }
+  .tutorial-panel::after {
+    bottom: -2px; right: -2px;
+    border-left: none; border-top: none;
+  }
+
+  /* INTRO state */
+  .tutorial-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding: 24px 0;
+  }
+
+  .tutorial-panel.in-steps .tutorial-intro {
+    display: none;
+  }
+
+  .tutorial-pixel-icon {
+    width: 92px;
+    height: auto;
+    color: #ecffaa;
+    filter:
+      drop-shadow(0 0 8px rgba(212, 255, 0, 0.65))
+      drop-shadow(0 0 18px rgba(212, 255, 0, 0.4));
+    shape-rendering: crispEdges;
+    image-rendering: pixelated;
+    display: block;
+    animation: tutorial-icon-pulse 2.2s ease-in-out infinite;
+  }
+  .tutorial-pixel-icon rect { fill: currentColor; }
+
+  @keyframes tutorial-icon-pulse {
+    0%, 100% {
+      transform: scale(1);
+      filter:
+        drop-shadow(0 0 8px rgba(212, 255, 0, 0.65))
+        drop-shadow(0 0 18px rgba(212, 255, 0, 0.4));
+    }
+    50% {
+      transform: scale(1.06);
+      filter:
+        drop-shadow(0 0 12px rgba(220, 255, 130, 0.85))
+        drop-shadow(0 0 24px rgba(212, 255, 0, 0.55));
+    }
+  }
+
+  .intro-message {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #ecffaa;
+    text-shadow:
+      0 0 6px rgba(220, 255, 180, 0.7),
+      0 0 14px rgba(212, 255, 0, 0.55),
+      0 0 28px rgba(212, 255, 0, 0.3);
+    text-align: center;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .intro-message .accent {
+    color: #d4ff66;
+    font-weight: 700;
+    font-style: italic;
+  }
+
+  /* STEPS state */
+  .tutorial-steps {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+  }
+
+  .tutorial-panel.in-steps .tutorial-steps {
+    display: flex;
+  }
+
+  .step-indicator {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.45em;
+    text-transform: uppercase;
+    color: rgba(220, 255, 100, 0.85);
+    text-shadow: 0 0 8px rgba(212, 255, 0, 0.55);
+  }
+
+  .step-current-num {
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(220, 255, 180, 0.95);
+  }
+
+  .tutorial-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: 0.05em;
+    color: #ecffaa;
+    text-shadow: 0 0 12px rgba(212, 255, 0, 0.6);
+    text-align: center;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .tutorial-desc {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.015em;
+    color: #d8ffc0;
+    text-align: center;
+    line-height: 1.55;
+    max-width: 640px;
+    margin: 0;
+  }
+
+  .tutorial-image-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(220, 255, 100, 0.35);
+    border-radius: 4px;
+    box-shadow: inset 0 0 14px rgba(212, 255, 0, 0.06);
+  }
+
+  .tutorial-image {
+    max-width: 100%;
+    max-height: 44vh;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    border-radius: 3px;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+    transition: opacity 0.3s ease;
+  }
+
+  .tutorial-nav {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tutorial-nav .tv-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: grayscale(0.6);
+  }
+
+  /* ===== FINALE state — celebratory finish ===== */
+  .tutorial-finale {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    padding: 24px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tutorial-panel.in-finale .tutorial-finale {
+    display: flex;
+  }
+
+  .tutorial-panel.in-finale .tutorial-intro,
+  .tutorial-panel.in-finale .tutorial-steps {
+    display: none;
+  }
+
+  .finale-pixel-icon {
+    width: 100px;
+    height: auto;
+    color: #d4ff66;
+    filter:
+      drop-shadow(0 0 12px rgba(212, 255, 0, 0.8))
+      drop-shadow(0 0 28px rgba(212, 255, 0, 0.5))
+      drop-shadow(0 0 50px rgba(212, 255, 0, 0.28));
+    shape-rendering: crispEdges;
+    image-rendering: pixelated;
+    display: block;
+    animation: finale-icon-bounce 0.55s ease-in-out infinite;
+  }
+  .finale-pixel-icon rect { fill: currentColor; }
+
+  @keyframes finale-icon-bounce {
+    0%, 100% {
+      transform: translateY(0) rotate(-6deg) scale(1);
+      filter:
+        drop-shadow(0 0 12px rgba(212, 255, 0, 0.8))
+        drop-shadow(0 0 28px rgba(212, 255, 0, 0.5))
+        drop-shadow(0 0 50px rgba(212, 255, 0, 0.28));
+    }
+    50% {
+      transform: translateY(-10px) rotate(6deg) scale(1.1);
+      filter:
+        drop-shadow(0 0 18px rgba(240, 255, 180, 0.95))
+        drop-shadow(0 0 38px rgba(212, 255, 0, 0.65))
+        drop-shadow(0 0 70px rgba(212, 255, 0, 0.4));
+    }
+  }
+
+  .finale-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 800;
+    font-size: 44px;
+    letter-spacing: 0.1em;
+    color: #f8ffe0;
+    text-align: center;
+    margin: 0;
+    text-transform: uppercase;
+    text-shadow:
+      0 0 6px #ffffff,
+      0 0 14px #d4ff66,
+      0 0 28px #d4ff00,
+      0 0 50px rgba(212, 255, 0, 0.8),
+      0 0 80px rgba(212, 255, 0, 0.5);
+    animation: finale-title-glow 1.8s ease-in-out infinite;
+    line-height: 1;
+  }
+
+  @keyframes finale-title-glow {
+    0%, 100% {
+      text-shadow:
+        0 0 6px #ffffff,
+        0 0 14px #d4ff66,
+        0 0 28px #d4ff00,
+        0 0 50px rgba(212, 255, 0, 0.8),
+        0 0 80px rgba(212, 255, 0, 0.5);
+      transform: scale(1);
+    }
+    50% {
+      text-shadow:
+        0 0 8px #ffffff,
+        0 0 20px #d4ff66,
+        0 0 38px #d4ff00,
+        0 0 65px rgba(212, 255, 0, 0.95),
+        0 0 110px rgba(212, 255, 0, 0.55);
+      transform: scale(1.04);
+    }
+  }
+
+  .finale-message {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    color: #ecffaa;
+    text-align: center;
+    line-height: 1.65;
+    max-width: 600px;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(212, 255, 0, 0.35);
+  }
+
+  .finale-message strong {
+    color: #d4ff66;
+    font-weight: 700;
+    font-style: italic;
+    text-shadow:
+      0 0 6px rgba(220, 255, 130, 0.7),
+      0 0 14px rgba(212, 255, 0, 0.5);
+  }
+
+  .finale-tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: rgba(220, 255, 100, 0.75);
+    text-align: center;
+    margin: 0;
+    text-shadow: 0 0 8px rgba(212, 255, 0, 0.45);
+    padding: 8px 14px;
+    border-top: 1px solid rgba(220, 255, 100, 0.3);
+    border-bottom: 1px solid rgba(220, 255, 100, 0.3);
+  }
+
+  /* Confetti pixel rain */
+  .finale-confetti {
+    position: absolute;
+    inset: -20px -40px;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    top: -20px;
+    width: 8px;
+    height: 8px;
+    animation: confetti-fall linear infinite;
+    box-shadow: 0 0 8px currentColor;
+    opacity: 0;
+    image-rendering: pixelated;
+  }
+
+  .tutorial-panel.in-finale .confetti-piece { opacity: 1; }
+
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+    8%   { opacity: 1; }
+    92%  { opacity: 1; }
+    100% { transform: translateY(560px) rotate(900deg); opacity: 0; }
+  }
+
+  .confetti-piece.c1  { background: #d4ff00; color: #d4ff00; left: 6%;  animation-duration: 3.2s; animation-delay: 0s; }
+  .confetti-piece.c2  { background: #ecffaa; color: #ecffaa; left: 16%; animation-duration: 4.1s; animation-delay: 0.5s; }
+  .confetti-piece.c3  { background: #88ff66; color: #88ff66; left: 24%; animation-duration: 3.6s; animation-delay: 1.0s; width: 6px; height: 6px; }
+  .confetti-piece.c4  { background: #ffe233; color: #ffe233; left: 34%; animation-duration: 4.5s; animation-delay: 0.3s; }
+  .confetti-piece.c5  { background: #d4ff66; color: #d4ff66; left: 44%; animation-duration: 3.3s; animation-delay: 1.2s; width: 7px; height: 7px; }
+  .confetti-piece.c6  { background: #ffaa00; color: #ffaa00; left: 54%; animation-duration: 3.8s; animation-delay: 0.7s; }
+  .confetti-piece.c7  { background: #f0ff88; color: #f0ff88; left: 64%; animation-duration: 4.2s; animation-delay: 0.2s; }
+  .confetti-piece.c8  { background: #d4ff00; color: #d4ff00; left: 74%; animation-duration: 3.5s; animation-delay: 1.4s; width: 6px; height: 6px; }
+  .confetti-piece.c9  { background: #ecffaa; color: #ecffaa; left: 82%; animation-duration: 4.0s; animation-delay: 0.9s; }
+  .confetti-piece.c10 { background: #ffd633; color: #ffd633; left: 92%; animation-duration: 3.7s; animation-delay: 0.4s; }
+  .confetti-piece.c11 { background: #88ff66; color: #88ff66; left: 12%; animation-duration: 4.6s; animation-delay: 2.0s; }
+  .confetti-piece.c12 { background: #ffe233; color: #ffe233; left: 48%; animation-duration: 3.4s; animation-delay: 1.8s; width: 6px; height: 6px; }
+  .confetti-piece.c13 { background: #d4ff66; color: #d4ff66; left: 88%; animation-duration: 4.3s; animation-delay: 2.3s; }
+  .confetti-piece.c14 { background: #f0ff88; color: #f0ff88; left: 28%; animation-duration: 3.9s; animation-delay: 2.5s; }
+
+  /* Override tv-btn styles in tutorial for lime theme (inherits aiox-cmd-overlay) */
+  .aiox-tutorial-overlay .tv-btn {
+    background: rgba(15, 28, 0, 0.55);
+    border-color: rgba(220, 255, 100, 0.55);
+    color: #f4ffd0;
+    text-shadow:
+      0 0 4px rgba(220, 255, 180, 0.75),
+      0 0 10px rgba(212, 255, 0, 0.5);
+    box-shadow:
+      0 0 18px rgba(212, 255, 0, 0.22),
+      inset 0 0 14px rgba(212, 255, 0, 0.08);
+  }
+
+  .aiox-tutorial-overlay .tv-btn::before,
+  .aiox-tutorial-overlay .tv-btn::after {
+    border-color: rgba(220, 255, 100, 0.9);
+    box-shadow: 0 0 6px rgba(212, 255, 0, 0.6);
+  }
+
+  .aiox-tutorial-overlay .tv-btn:hover {
+    background: rgba(60, 120, 0, 0.32);
+    border-color: #d4ff66;
+    color: #ffffff;
+    box-shadow:
+      0 0 30px rgba(212, 255, 0, 0.55),
+      inset 0 0 22px rgba(212, 255, 0, 0.22);
+  }
+
+  /* ========================================
+     PIXELATED SUCCESS MARQUEE (arcade-style)
+     Shows after returning from Claude Code install
+     ======================================== */
+  .success-marquee {
+    position: fixed;
+    bottom: 2vh;
+    left: 0;
+    right: 0;
+    height: 84px;
+    background: linear-gradient(180deg, #2a1505 0%, #0a0402 100%);
+    border-top: 3px solid #ff8533;
+    border-bottom: 3px solid #ff8533;
+    box-shadow:
+      0 0 30px rgba(255, 107, 26, 0.55),
+      0 0 60px rgba(255, 107, 26, 0.25),
+      inset 0 0 28px rgba(255, 107, 26, 0.12),
+      0 -3px 14px rgba(255, 107, 26, 0.3);
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(120%);
+    transition:
+      opacity 0.6s ease,
+      transform 0.8s cubic-bezier(0.34, 1.32, 0.5, 1),
+      visibility 0s linear 0.8s;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .success-marquee.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+    cursor: pointer;
+    transition:
+      opacity 0.6s ease,
+      transform 0.8s cubic-bezier(0.34, 1.32, 0.5, 1),
+      visibility 0s linear;
+  }
+
+  /* LED chase lights — top and bottom rows */
+  .marquee-leds {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background-image:
+      radial-gradient(circle at 8px center, #ffe8aa 30%, #ff8533 38%, transparent 45%),
+      radial-gradient(circle at 24px center, #cc4400 30%, transparent 40%);
+    background-size: 32px 12px;
+    background-repeat: repeat-x;
+    z-index: 3;
+    filter: drop-shadow(0 0 6px rgba(255, 170, 70, 0.7));
+  }
+
+  .marquee-leds-top { top: 3px; }
+  .marquee-leds-bottom { bottom: 3px; }
+
+  .marquee-leds-top {
+    animation: leds-chase 0.7s linear infinite;
+  }
+
+  .marquee-leds-bottom {
+    animation: leds-chase 0.7s linear infinite reverse;
+  }
+
+  @keyframes leds-chase {
+    to { background-position: 32px 0; }
+  }
+
+  /* Scrolling content track */
+  .marquee-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    width: max-content;
+    height: 100%;
+    align-items: center;
+    animation: marquee-scroll 32s linear infinite;
+    will-change: transform;
+    transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+  }
+
+  /* AIOX track hidden by default */
+  .marquee-track-aiox {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  /* Switch tracks when AIOX mode active */
+  .success-marquee.aiox-mode .marquee-track-success {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .success-marquee.aiox-mode .marquee-track-aiox {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.6s ease, visibility 0s linear;
+  }
+
+  .marquee-set {
+    display: flex;
+    align-items: center;
+    gap: 38px;
+    padding: 0 19px;
+    height: 100%;
+  }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+
+  /* Happy bouncing Claude Code logos */
+  .marquee-logo {
+    height: 52px;
+    width: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    animation: logo-happy 0.7s ease-in-out infinite;
+    filter:
+      drop-shadow(0 3px 6px rgba(0,0,0,0.5))
+      drop-shadow(0 0 10px rgba(255, 140, 70, 0.4));
+    transform-origin: bottom center;
+  }
+
+  .marquee-logo:nth-child(3n+1) { animation-delay: 0s; }
+  .marquee-logo:nth-child(3n+2) { animation-delay: 0.15s; }
+  .marquee-logo:nth-child(3n)   { animation-delay: 0.3s; }
+
+  @keyframes logo-happy {
+    0%, 100% {
+      transform: translateY(0) rotate(-4deg) scale(1);
+    }
+    25% {
+      transform: translateY(-4px) rotate(0deg) scale(1.04);
+    }
+    50% {
+      transform: translateY(-10px) rotate(4deg) scale(1.08);
+    }
+    75% {
+      transform: translateY(-4px) rotate(0deg) scale(1.04);
+    }
+  }
+
+  /* Pixelated arcade-style text */
+  .marquee-text {
+    font-family: 'Press Start 2P', 'JetBrains Mono', monospace;
+    font-size: 18px;
+    color: #ffdd99;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    text-shadow:
+      2px 2px 0 #cc4400,
+      3px 3px 0 #802200,
+      0 0 8px rgba(255, 200, 100, 0.7),
+      0 0 16px rgba(255, 107, 26, 0.5);
+    -webkit-text-stroke: 0.5px #4a1500;
+    text-transform: uppercase;
+  }
+
+  /* Pixel-art SVG icons (replace all emojis — must be pixelated only) */
+  .pixel-icon {
+    height: 30px;
+    width: auto;
+    display: inline-block;
+    vertical-align: middle;
+    shape-rendering: crispEdges;
+    image-rendering: pixelated;
+    animation: pixel-bounce 0.7s ease-in-out infinite;
+  }
+
+  .pixel-icon rect { fill: currentColor; }
+
+  /* Sparkle — celebration accent (kept generic) */
+  .px-sparkle {
+    color: #ffe8aa;
+    filter: drop-shadow(0 0 6px rgba(255, 232, 170, 0.85));
+  }
+  /* Dev icons — programming / dev language symbols */
+  .px-code {
+    color: #88e0ff;
+    filter: drop-shadow(0 0 6px rgba(136, 224, 255, 0.8));
+    animation-delay: 0.2s;
+  }
+  .px-braces {
+    color: #ffb066;
+    filter: drop-shadow(0 0 6px rgba(255, 176, 102, 0.78));
+    animation-delay: 0.32s;
+  }
+  .px-bolt {
+    color: #ffe233;
+    filter: drop-shadow(0 0 7px rgba(255, 226, 51, 0.85));
+    animation-delay: 0.1s;
+  }
+
+  @keyframes pixel-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    45% { transform: translateY(-7px) scale(1.18); }
+  }
+
+  /* Scanlines overlay — gives the marquee a real pixel-screen feel */
+  .success-marquee::after {
+    content: '';
+    position: absolute;
+    top: 17px;
+    bottom: 17px;
+    left: 0;
+    right: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 2px,
+      rgba(0, 0, 0, 0.22) 2px,
+      rgba(0, 0, 0, 0.22) 3px
+    );
+    pointer-events: none;
+    z-index: 4;
+    mix-blend-mode: multiply;
+  }
+
+  /* Subtle vertical pixel grid for "screen" feel */
+  .success-marquee::before {
+    content: '';
+    position: absolute;
+    top: 17px;
+    bottom: 17px;
+    left: 0;
+    right: 0;
+    background-image:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.12) 1px, transparent 1px);
+    background-size: 3px 100%;
+    pointer-events: none;
+    z-index: 3;
+    mix-blend-mode: multiply;
+  }
+
+  /* AIOX CTA text (white, pixelated) */
+  .aiox-cta-text {
+    color: #ffffff !important;
+    text-shadow:
+      2px 2px 0 #444,
+      3px 3px 0 #1a1a1a,
+      0 0 8px rgba(255, 255, 255, 0.55),
+      0 0 16px rgba(255, 255, 255, 0.3) !important;
+    -webkit-text-stroke: 0.5px #000;
+  }
+
+  /* AIOX word — lime green pixel */
+  .aiox-lime {
+    color: #d4ff00;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-left: 8px;
+    text-shadow:
+      2px 2px 0 #88aa00,
+      3px 3px 0 #557700,
+      0 0 8px rgba(212, 255, 0, 0.9),
+      0 0 18px rgba(212, 255, 0, 0.55);
+    -webkit-text-stroke: 0.5px #2a3a00;
+  }
+
+  /* AIOX MODE — marquee theme switches to lime green */
+  .success-marquee.aiox-mode {
+    border-top-color: #d4ff00;
+    border-bottom-color: #d4ff00;
+    box-shadow:
+      0 0 30px rgba(212, 255, 0, 0.55),
+      0 0 60px rgba(212, 255, 0, 0.25),
+      inset 0 0 28px rgba(212, 255, 0, 0.12),
+      0 -3px 14px rgba(212, 255, 0, 0.3);
+  }
+
+  .success-marquee.aiox-mode .marquee-leds {
+    background-image:
+      radial-gradient(circle at 8px center, #f0ffaa 30%, #d4ff00 38%, transparent 45%),
+      radial-gradient(circle at 24px center, #557700 30%, transparent 40%);
+    filter: drop-shadow(0 0 6px rgba(212, 255, 0, 0.75));
+  }
+
+  /* Pixel icons in AIOX mode → all switch to lime palette */
+  .success-marquee.aiox-mode .pixel-icon {
+    color: #d4ff00;
+    filter: drop-shadow(0 0 6px rgba(212, 255, 0, 0.8));
+  }
+
+  /* Smooth border/glow transition */
+  .success-marquee {
+    transition:
+      opacity 0.6s ease,
+      transform 0.8s cubic-bezier(0.34, 1.32, 0.5, 1),
+      visibility 0s linear 0.8s,
+      border-color 0.7s ease,
+      box-shadow 0.7s ease;
+  }
+
+  /* ========================================
+     AIOX CTA (appears after marquee dismisses)
+     ======================================== */
+  .aiox-cta {
+    position: fixed;
+    bottom: 6vh;
+    left: 50%;
+    transform: translateX(-50%) translateY(40px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 48px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(212, 255, 0, 0.4);
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+    color: inherit;
+    font: inherit;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.7s ease,
+      transform 0.8s cubic-bezier(0.34, 1.32, 0.5, 1),
+      visibility 0s linear 0.8s,
+      box-shadow 0.4s ease,
+      background 0.4s ease,
+      border-color 0.4s ease;
+    z-index: 60;
+    box-shadow:
+      0 0 30px rgba(212, 255, 0, 0.18),
+      inset 0 0 18px rgba(212, 255, 0, 0.06);
+  }
+
+  .aiox-cta.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    transition:
+      opacity 0.7s ease,
+      transform 0.8s cubic-bezier(0.34, 1.32, 0.5, 1),
+      visibility 0s linear,
+      box-shadow 0.4s ease,
+      background 0.4s ease,
+      border-color 0.4s ease;
+  }
+
+  /* Bracket corners — AIOX brand feel */
+  .aiox-cta::before,
+  .aiox-cta::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 1px solid rgba(212, 255, 0, 0.85);
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+  .aiox-cta::before {
+    top: -2px; left: -2px;
+    border-right: none; border-bottom: none;
+  }
+  .aiox-cta::after {
+    bottom: -2px; right: -2px;
+    border-left: none; border-top: none;
+  }
+
+  .aiox-cta-logo {
+    height: 42px;
+    width: auto;
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25));
+    transition: filter 0.4s ease, transform 0.4s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .aiox-cta-text {
+    font-family: 'Quicksand', 'Inter', sans-serif;
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+    white-space: nowrap;
+  }
+
+  .aiox-name {
+    color: #d4ff00;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    margin-left: 8px;
+    text-shadow:
+      0 0 4px #e8ff66,
+      0 0 14px #d4ff00,
+      0 0 32px rgba(212, 255, 0, 0.75);
+    animation: aiox-pulse 2.4s ease-in-out infinite;
+    display: inline-block;
+  }
+
+  @keyframes aiox-pulse {
+    0%, 100% {
+      text-shadow:
+        0 0 4px #e8ff66,
+        0 0 14px #d4ff00,
+        0 0 32px rgba(212, 255, 0, 0.75);
+      transform: scale(1);
+    }
+    50% {
+      text-shadow:
+        0 0 6px #ffffff,
+        0 0 20px #e8ff66,
+        0 0 44px rgba(212, 255, 0, 0.95);
+      transform: scale(1.05);
+    }
+  }
+
+  .aiox-cta:hover {
+    background: rgba(20, 35, 0, 0.7);
+    border-color: rgba(212, 255, 0, 0.9);
+    box-shadow:
+      0 0 50px rgba(212, 255, 0, 0.4),
+      0 0 100px rgba(212, 255, 0, 0.15),
+      inset 0 0 22px rgba(212, 255, 0, 0.12);
+  }
+
+  .aiox-cta:hover .aiox-cta-logo {
+    filter: drop-shadow(0 0 18px rgba(212, 255, 0, 0.55));
+    transform: scale(1.05);
+  }
+
+  .aiox-cta:hover .aiox-name {
+    color: #ffffff;
+    text-shadow:
+      0 0 6px #ffffff,
+      0 0 20px #d4ff00,
+      0 0 44px rgba(212, 255, 0, 1);
+  }
+
+  .aiox-cta:active {
+    transform: translateX(-50%) scale(0.97);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .arcade-button { width: 160px; height: 160px; }
+    .install-button { width: 240px; }
+    .light-path-wrap {
+      top: calc(11vh + 170px);
+      bottom: calc(12vh + 160px);
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="world">
+  <div class="scene">
+    <!-- ARCADE BUTTON -->
+    <button class="arcade-button" id="mainButton" aria-label="Claude Code">
+      <div class="arcade-shadow"></div>
+      <img class="arcade-img" src="claudecode-botao.png" alt="Claude Code">
+      <div class="arcade-glow"></div>
+    </button>
+
+    <!-- LIGHT PATH -->
+    <div class="light-path-wrap" id="lightPath">
+      <svg class="light-path" viewBox="0 0 6 1000" preserveAspectRatio="none">
+        <line class="light-line" x1="3" y1="0" x2="3" y2="1000"/>
+        <circle class="light-tip" cx="3" cy="0" r="3">
+          <animate
+            attributeName="cy"
+            from="0"
+            to="1000"
+            dur="1.8s"
+            begin="indefinite"
+            fill="freeze"
+            id="tipAnim"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- LEFT BRANCH (opens when install clicked) -->
+    <div class="left-branch-wrap" id="leftBranch">
+      <svg class="left-branch-svg" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
+        <path
+          class="left-branch-line"
+          d="M 300 100
+             C 260 95, 245 60, 205 65
+             C 170 70, 145 110, 105 100
+             C 70 92, 40 88, 12 92"/>
+        <circle class="left-branch-node" cx="12" cy="92" r="4"/>
+        <circle class="left-branch-tip" cx="300" cy="100" r="3.5">
+          <animateMotion
+            dur="1.4s"
+            fill="freeze"
+            begin="indefinite"
+            id="leftTipAnim"
+            keyPoints="0;1"
+            keyTimes="0;1"
+            path="M 0 0
+                  C -40 -5, -55 -40, -95 -35
+                  C -130 -30, -155 10, -195 0
+                  C -230 -8, -260 -12, -288 -8"/>
+        </circle>
+      </svg>
+
+      <!-- Node.js logo at end of LEFT branch (STEP 1) -->
+      <div class="node-logo-wrap" id="nodeLogoWrap">
+        <img src="nodeJS.png" alt="Node.js">
+        <div class="step-badge">01 ▸ PRIMEIRO</div>
+        <div class="monitor-hint">CLIQUE</div>
+      </div>
+    </div>
+
+    <!-- RIGHT BRANCH (opens to Computer/Install command) -->
+    <div class="right-branch-wrap" id="rightBranch">
+      <svg class="right-branch-svg" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
+        <path
+          class="right-branch-line"
+          d="M 0 100
+             C 40 95, 55 60, 95 65
+             C 130 70, 155 110, 195 100
+             C 230 92, 260 88, 288 92"/>
+        <circle class="right-branch-node" cx="288" cy="92" r="4"/>
+        <circle class="right-branch-tip" cx="0" cy="100" r="3.5">
+          <animateMotion
+            dur="1.4s"
+            fill="freeze"
+            begin="indefinite"
+            id="rightTipAnim"
+            keyPoints="0;1"
+            keyTimes="0;1"
+            path="M 0 0
+                  C 40 -5, 55 -40, 95 -35
+                  C 130 -30, 155 10, 195 0
+                  C 230 -8, 260 -12, 288 -8"/>
+        </circle>
+      </svg>
+
+      <!-- CRT MONITOR at end of right branch (STEP 2 — locked initially) -->
+      <div class="monitor-wrap locked" id="monitorWrap">
+        <img src="Pc_install.png" alt="Instalar">
+        <div class="step-badge">02 ▸ DEPOIS</div>
+        <div class="monitor-hint" id="monitorHint">ABRA NODE.JS</div>
+      </div>
+    </div>
+
+    <!-- INSTALL BUTTON -->
+    <button class="install-button" id="installButton">
+      <div class="install-shadow"></div>
+      <img class="install-img" src="Instala%C3%A7%C3%A3o.png" alt="Instalação">
+      <span class="word-glow">Instalação</span>
+    </button>
+  </div>
+
+  <!-- AIOX SCENE — revealed when AIOX CTA in marquee is clicked -->
+  <div class="aiox-scene" id="aioxScene">
+    <button class="aiox-arcade-button" id="aioxArcadeButton" aria-label="AIOX">
+      <div class="aiox-arcade-shadow"></div>
+      <img class="aiox-arcade-img" src="aiox-logo.png" alt="AIOX">
+    </button>
+
+    <!-- Lime green light path -->
+    <div class="aiox-path-wrap" id="aioxLightPath">
+      <svg viewBox="0 0 6 1000" preserveAspectRatio="none">
+        <line class="aiox-light-line" x1="3" y1="0" x2="3" y2="1000"/>
+        <circle class="aiox-light-tip" cx="3" cy="0" r="3">
+          <animate
+            attributeName="cy"
+            from="0"
+            to="1000"
+            dur="1.8s"
+            begin="indefinite"
+            fill="freeze"
+            id="aioxTipAnim"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- AIOX Instalação button (reuses install-button base, lime overrides) -->
+    <button class="install-button" id="aioxInstallButton">
+      <div class="install-shadow"></div>
+      <img class="install-img" src="Instala%C3%A7%C3%A3o.png" alt="Instalação">
+      <span class="word-glow">Instalação</span>
+    </button>
+
+    <!-- AIOX command path — goes DOWN from install button -->
+    <div class="aiox-cmd-path-wrap" id="aioxCmdPath">
+      <svg viewBox="0 0 6 500" preserveAspectRatio="none">
+        <line class="aiox-cmd-line" x1="3" y1="0" x2="3" y2="500"/>
+        <circle class="aiox-cmd-tip" cx="3" cy="0" r="3">
+          <animate
+            attributeName="cy"
+            from="0"
+            to="500"
+            dur="1s"
+            begin="indefinite"
+            fill="freeze"
+            id="aioxCmdTipAnim"/>
+        </circle>
+      </svg>
+    </div>
+  </div>
+  </div><!-- /#world -->
+
+  <!-- AIOX INSTALL COMMAND OVERLAY -->
+  <div class="aiox-cmd-overlay" id="aioxCmdOverlay">
+    <div class="node-panel">
+      <div class="node-title">Instalar AIOX</div>
+      <div class="tv-command">
+        <span class="cmd-prefix">$</span><span class="cmd-text" id="aioxCmdText"></span><span class="cmd-cursor"></span>
+      </div>
+      <div class="tv-actions">
+        <button class="tv-btn" id="aioxCopyBtn" type="button">
+          <span class="icon">⎘</span>
+          <span class="label">COPIAR</span>
+        </button>
+        <button class="tv-btn" id="aioxStepsBtn" type="button">
+          <span class="icon">→</span>
+          <span class="label">CONTINUAR</span>
+        </button>
+        <button class="tv-btn" id="aioxBackBtn" type="button">
+          <span class="icon">←</span>
+          <span class="label">VOLTAR</span>
+        </button>
+        <button class="tv-btn" id="aioxHomeBtn" type="button">
+          <span class="icon">⌂</span>
+          <span class="label">INÍCIO</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AIOX TUTORIAL OVERLAY (step-by-step installer flow) -->
+  <div class="aiox-tutorial-overlay" id="aioxTutorial">
+    <div class="tutorial-panel" id="tutorialPanel">
+      <!-- INTRO state -->
+      <div class="tutorial-intro">
+        <svg class="tutorial-pixel-icon" viewBox="0 0 11 8" shape-rendering="crispEdges" aria-hidden="true">
+          <rect x="1" y="0" width="9" height="1"/>
+          <rect x="0" y="1" width="1" height="6"/>
+          <rect x="10" y="1" width="1" height="6"/>
+          <rect x="1" y="7" width="9" height="1"/>
+          <rect x="2" y="2" width="7" height="1"/>
+          <rect x="2" y="5" width="7" height="1"/>
+          <rect x="2" y="3" width="1" height="2"/>
+          <rect x="8" y="3" width="1" height="2"/>
+          <rect x="4" y="3" width="3" height="2"/>
+        </svg>
+        <p class="intro-message">
+          O processo é bem intuitivo,<br>
+          em caso de dúvida, <span class="accent">leia rsrs</span>
+        </p>
+        <button class="tv-btn" id="tutorialStart" type="button">
+          <span class="icon">▶</span>
+          <span class="label">COMEÇAR</span>
+        </button>
+      </div>
+
+      <!-- STEPS state -->
+      <div class="tutorial-steps">
+        <div class="step-indicator">
+          ETAPA <span class="step-current-num" id="stepCurrent">1</span> / <span id="stepTotal">8</span>
+        </div>
+        <h2 class="tutorial-title" id="tutorialTitle"></h2>
+        <p class="tutorial-desc" id="tutorialDesc"></p>
+        <div class="tutorial-image-wrap">
+          <img class="tutorial-image" id="tutorialImage" src="" alt="Passo">
+        </div>
+        <div class="tutorial-nav">
+          <button class="tv-btn" id="tutorialPrev" type="button">
+            <span class="icon">←</span>
+            <span class="label">ANTERIOR</span>
+          </button>
+          <button class="tv-btn" id="tutorialNext" type="button">
+            <span class="icon">→</span>
+            <span class="label">PRÓXIMO</span>
+          </button>
+          <button class="tv-btn" id="tutorialClose" type="button">
+            <span class="icon">✕</span>
+            <span class="label">FECHAR</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- FINALE state — celebration -->
+      <div class="tutorial-finale">
+        <div class="finale-confetti">
+          <span class="confetti-piece c1"></span>
+          <span class="confetti-piece c2"></span>
+          <span class="confetti-piece c3"></span>
+          <span class="confetti-piece c4"></span>
+          <span class="confetti-piece c5"></span>
+          <span class="confetti-piece c6"></span>
+          <span class="confetti-piece c7"></span>
+          <span class="confetti-piece c8"></span>
+          <span class="confetti-piece c9"></span>
+          <span class="confetti-piece c10"></span>
+          <span class="confetti-piece c11"></span>
+          <span class="confetti-piece c12"></span>
+          <span class="confetti-piece c13"></span>
+          <span class="confetti-piece c14"></span>
+        </div>
+        <svg class="finale-pixel-icon" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true">
+          <rect x="0" y="0" width="1" height="1"/>
+          <rect x="6" y="0" width="1" height="1"/>
+          <rect x="3" y="0" width="1" height="1"/>
+          <rect x="1" y="1" width="1" height="1"/>
+          <rect x="5" y="1" width="1" height="1"/>
+          <rect x="3" y="1" width="1" height="1"/>
+          <rect x="2" y="2" width="3" height="1"/>
+          <rect x="0" y="3" width="7" height="1"/>
+          <rect x="2" y="4" width="3" height="1"/>
+          <rect x="1" y="5" width="1" height="1"/>
+          <rect x="5" y="5" width="1" height="1"/>
+          <rect x="3" y="5" width="1" height="1"/>
+          <rect x="0" y="6" width="1" height="1"/>
+          <rect x="6" y="6" width="1" height="1"/>
+          <rect x="3" y="6" width="1" height="1"/>
+        </svg>
+        <h1 class="finale-title">Parabéns!</h1>
+        <p class="finale-message">
+          Você acabou de instalar seu <strong>AIOX</strong> e agora está oficialmente <strong>pronto para uso</strong>.<br>
+          <strong>Divirta-se!</strong>
+        </p>
+        <p class="finale-tagline">
+          [ Code first · Sleep later · Repeat ]
+        </p>
+        <button class="tv-btn" id="tutorialFinish" type="button">
+          <span class="icon">✓</span>
+          <span class="label">CONCLUIR</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TV STATIC OVERLAY (fullscreen) -->
+  <div class="tv-overlay" id="tvOverlay">
+    <canvas class="tv-static" id="tvStatic"></canvas>
+    <div class="tv-sweep"></div>
+    <div class="tv-scanlines"></div>
+    <div class="tv-vignette"></div>
+    <div class="tv-screen">
+      <div class="tv-command">
+        <span class="cmd-prefix">$</span><span class="cmd-text" id="cmdText"></span><span class="cmd-cursor"></span>
+      </div>
+      <div class="tv-actions">
+        <button class="tv-btn" id="copyBtn" type="button">
+          <span class="icon">⎘</span>
+          <span class="label">COPIAR</span>
+        </button>
+        <button class="tv-btn" id="backBtn" type="button">
+          <span class="icon">←</span>
+          <span class="label">VOLTAR</span>
+        </button>
+        <button class="tv-btn" id="homeBtn" type="button">
+          <span class="icon">⌂</span>
+          <span class="label">INÍCIO</span>
+        </button>
+      </div>
+    </div>
+    <div class="tv-hint" id="tvHint">CLIQUE PARA CONTINUAR</div>
+  </div>
+
+  <!-- PIXELATED SUCCESS MARQUEE -->
+  <div class="success-marquee" id="successMarquee">
+    <div class="marquee-leds marquee-leds-top"></div>
+
+    <!-- SUCCESS MODE — Claude Code installed -->
+    <div class="marquee-track marquee-track-success">
+      <div class="marquee-set">
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <svg class="pixel-icon px-sparkle" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="1" height="2"/><rect x="2" y="2" width="3" height="1"/><rect x="0" y="3" width="7" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="2"/></svg>
+        <span class="marquee-text">Claude Code instalado com sucesso!!</span>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <svg class="pixel-icon px-code" viewBox="0 0 9 5" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="6" y="0" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/></svg>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <span class="marquee-text">Claude Code instalado com sucesso!!</span>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <svg class="pixel-icon px-braces" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="0" width="2" height="1"/><rect x="0" y="1" width="1" height="2"/><rect x="1" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="2"/><rect x="1" y="6" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="6" y="1" width="1" height="2"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="2"/><rect x="4" y="6" width="2" height="1"/></svg>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <span class="marquee-text">Claude Code instalado com sucesso!!</span>
+        <svg class="pixel-icon px-bolt" viewBox="0 0 5 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="5" height="1"/><rect x="2" y="4" width="2" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/></svg>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+      </div>
+      <div class="marquee-set">
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <svg class="pixel-icon px-sparkle" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="1" height="2"/><rect x="2" y="2" width="3" height="1"/><rect x="0" y="3" width="7" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="2"/></svg>
+        <span class="marquee-text">Claude Code instalado com sucesso!!</span>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <svg class="pixel-icon px-code" viewBox="0 0 9 5" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="6" y="0" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/></svg>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <span class="marquee-text">Claude Code instalado com sucesso!!</span>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <svg class="pixel-icon px-braces" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="0" width="2" height="1"/><rect x="0" y="1" width="1" height="2"/><rect x="1" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="2"/><rect x="1" y="6" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="6" y="1" width="1" height="2"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="2"/><rect x="4" y="6" width="2" height="1"/></svg>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+        <span class="marquee-text">Claude Code instalado com sucesso!!</span>
+        <svg class="pixel-icon px-bolt" viewBox="0 0 5 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="5" height="1"/><rect x="2" y="4" width="2" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/></svg>
+        <img src="claudecode-logo.png" class="marquee-logo" alt="">
+      </div>
+    </div>
+
+    <!-- AIOX CTA MODE — install AIOX prompt -->
+    <div class="marquee-track marquee-track-aiox">
+      <div class="marquee-set">
+        <svg class="pixel-icon px-sparkle" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="1" height="2"/><rect x="2" y="2" width="3" height="1"/><rect x="0" y="3" width="7" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="2"/></svg>
+        <span class="marquee-text aiox-cta-text">CLIQUE AQUI PARA INSTALAR O <span class="aiox-lime">AIOX</span></span>
+        <svg class="pixel-icon px-braces" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="0" width="2" height="1"/><rect x="0" y="1" width="1" height="2"/><rect x="1" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="2"/><rect x="1" y="6" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="6" y="1" width="1" height="2"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="2"/><rect x="4" y="6" width="2" height="1"/></svg>
+        <span class="marquee-text aiox-cta-text">CLIQUE AQUI PARA INSTALAR O <span class="aiox-lime">AIOX</span></span>
+        <svg class="pixel-icon px-code" viewBox="0 0 9 5" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="6" y="0" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/></svg>
+        <span class="marquee-text aiox-cta-text">CLIQUE AQUI PARA INSTALAR O <span class="aiox-lime">AIOX</span></span>
+        <svg class="pixel-icon px-bolt" viewBox="0 0 5 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="5" height="1"/><rect x="2" y="4" width="2" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/></svg>
+      </div>
+      <div class="marquee-set">
+        <svg class="pixel-icon px-sparkle" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="1" height="2"/><rect x="2" y="2" width="3" height="1"/><rect x="0" y="3" width="7" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="2"/></svg>
+        <span class="marquee-text aiox-cta-text">CLIQUE AQUI PARA INSTALAR O <span class="aiox-lime">AIOX</span></span>
+        <svg class="pixel-icon px-braces" viewBox="0 0 7 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="1" y="0" width="2" height="1"/><rect x="0" y="1" width="1" height="2"/><rect x="1" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="2"/><rect x="1" y="6" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="6" y="1" width="1" height="2"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="2"/><rect x="4" y="6" width="2" height="1"/></svg>
+        <span class="marquee-text aiox-cta-text">CLIQUE AQUI PARA INSTALAR O <span class="aiox-lime">AIOX</span></span>
+        <svg class="pixel-icon px-code" viewBox="0 0 9 5" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="0" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="6" y="0" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="7" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/></svg>
+        <span class="marquee-text aiox-cta-text">CLIQUE AQUI PARA INSTALAR O <span class="aiox-lime">AIOX</span></span>
+        <svg class="pixel-icon px-bolt" viewBox="0 0 5 7" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="3" height="1"/><rect x="1" y="1" width="3" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="5" height="1"/><rect x="2" y="4" width="2" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="1" y="6" width="1" height="1"/></svg>
+      </div>
+    </div>
+
+    <div class="marquee-leds marquee-leds-bottom"></div>
+  </div>
+
+  <!-- NODE.JS INSTALL OVERLAY -->
+  <div class="node-overlay" id="nodeOverlay">
+    <div class="node-panel">
+      <div class="node-title">Instalar Node.js</div>
+      <div class="os-tabs">
+        <button class="os-tab active" data-os="mac" type="button">MAC</button>
+        <button class="os-tab" data-os="windows" type="button">WINDOWS</button>
+        <button class="os-tab" data-os="linux" type="button">LINUX</button>
+      </div>
+      <div class="tv-command">
+        <span class="cmd-prefix">$</span><span class="cmd-text" id="nodeCmdText"></span><span class="cmd-cursor"></span>
+      </div>
+      <div class="tv-actions">
+        <button class="tv-btn" id="nodeCopyBtn" type="button">
+          <span class="icon">⎘</span>
+          <span class="label">COPIAR</span>
+        </button>
+        <button class="tv-btn" id="nodeBackBtn" type="button">
+          <span class="icon">←</span>
+          <span class="label">VOLTAR</span>
+        </button>
+        <button class="tv-btn" id="nodeHomeBtn" type="button">
+          <span class="icon">⌂</span>
+          <span class="label">INÍCIO</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const world = document.getElementById('world');
+    const button = document.getElementById('mainButton');
+    const lightPath = document.getElementById('lightPath');
+    const installButton = document.getElementById('installButton');
+    const leftBranch = document.getElementById('leftBranch');
+    const rightBranch = document.getElementById('rightBranch');
+    const monitorWrap = document.getElementById('monitorWrap');
+    const nodeLogoWrap = document.getElementById('nodeLogoWrap');
+    const tvOverlay = document.getElementById('tvOverlay');
+    const nodeOverlay = document.getElementById('nodeOverlay');
+    const tvStatic = document.getElementById('tvStatic');
+    const cmdText = document.getElementById('cmdText');
+    const nodeCmdText = document.getElementById('nodeCmdText');
+    const tvHint = document.getElementById('tvHint');
+    const copyBtn = document.getElementById('copyBtn');
+    const backBtn = document.getElementById('backBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const nodeCopyBtn = document.getElementById('nodeCopyBtn');
+    const nodeBackBtn = document.getElementById('nodeBackBtn');
+    const nodeHomeBtn = document.getElementById('nodeHomeBtn');
+    const osTabs = document.querySelectorAll('.os-tab');
+    const tipAnim = document.getElementById('tipAnim');
+    const leftTipAnim = document.getElementById('leftTipAnim');
+    const rightTipAnim = document.getElementById('rightTipAnim');
+
+    const INSTALL_CMD = 'npm install -g @anthropic-ai/claude-code';
+    const NODE_CMDS = {
+      mac: 'brew install node',
+      windows: 'winget install OpenJS.NodeJS',
+      linux: 'sudo apt install nodejs npm'
+    };
+    let currentOS = 'mac';
+    let hasOpenedNode = false;
+    let claudeCodeSeen = false;
+    const monitorHint = document.getElementById('monitorHint');
+    const successMarquee = document.getElementById('successMarquee');
+    const MARQUEE_DURATION = 2 * 60 * 1000; // 2 minutes
+    let marqueeTimer = null;
+
+    // AIOX scene references
+    const aioxScene = document.getElementById('aioxScene');
+    const aioxArcadeButton = document.getElementById('aioxArcadeButton');
+    const aioxLightPath = document.getElementById('aioxLightPath');
+    const aioxInstallButton = document.getElementById('aioxInstallButton');
+    const aioxTipAnim = document.getElementById('aioxTipAnim');
+    const aioxCmdPath = document.getElementById('aioxCmdPath');
+    const aioxCmdOverlay = document.getElementById('aioxCmdOverlay');
+    const aioxCmdText = document.getElementById('aioxCmdText');
+    const aioxCopyBtn = document.getElementById('aioxCopyBtn');
+    const aioxBackBtn = document.getElementById('aioxBackBtn');
+    const aioxHomeBtn = document.getElementById('aioxHomeBtn');
+    const aioxCmdTipAnim = document.getElementById('aioxCmdTipAnim');
+    const AIOX_INSTALL_CMD = 'npx aiox-core install';
+    let aioxOn = false;
+    let aioxCmdTypingTimer = null;
+
+    // Tutorial refs
+    const aioxTutorial = document.getElementById('aioxTutorial');
+    const tutorialPanel = document.getElementById('tutorialPanel');
+    const tutorialStart = document.getElementById('tutorialStart');
+    const tutorialTitle = document.getElementById('tutorialTitle');
+    const tutorialDesc = document.getElementById('tutorialDesc');
+    const tutorialImage = document.getElementById('tutorialImage');
+    const stepCurrent = document.getElementById('stepCurrent');
+    const tutorialPrev = document.getElementById('tutorialPrev');
+    const tutorialNext = document.getElementById('tutorialNext');
+    const tutorialClose = document.getElementById('tutorialClose');
+    const tutorialFinish = document.getElementById('tutorialFinish');
+    const aioxStepsBtn = document.getElementById('aioxStepsBtn');
+
+    const TUTORIAL_STEPS = [
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/1.png',
+        title: 'Bem-vindo ao AIOX-SQUAD',
+        desc: 'Primeira pergunta: seu projeto é Greenfield (vida nova, do zero) ou Brownfield (algo que já existe e precisa de carinho)? Use as setas pra navegar.'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/2.png',
+        title: 'Escolha sua IDE',
+        desc: 'Use SPACE pra marcar, ENTER pra confirmar. Pode escolher mais de uma — Claude Code e Codex são as recomendadas (e, sinceramente, as melhores).'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/3.png',
+        title: 'Qual seu stack?',
+        desc: 'Diga ao AIOX qual stack você usa: Next.js, Angular, Go, Java, Rust, C# ou PHP. Não sabe? Escolhe None e deixa o AIOX decidir baseado no projeto.'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/4.png',
+        title: 'Instalando o core',
+        desc: 'Se já existe um CLAUDE.md no projeto, o AIOX pergunta: mesclar, sobrescrever, fazer backup ou pular. Dica de ouro: sempre vai de Merge — preserva o que já tem.'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/5.png',
+        title: 'AGENTS.md também',
+        desc: 'Mesma pergunta pro AGENTS.md. Confia: Merge é o caminho da paz. Ele preserva tudo que você já tinha e adiciona o que faltava sem dor.'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/6.png',
+        title: 'Sincronização total',
+        desc: 'Boundary rules, skills, Codex skills, IDE sync, registry de entidades — tudo sendo configurado em segundos. Você só assiste ao show de luzes verdes.'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/7.png',
+        title: 'Variáveis de ambiente',
+        desc: 'Arquivos .env e .env.example são mesclados, suas API keys ficam preservadas, .gitignore atualizado, core-config.yaml configurado. Tudo no jeitinho.'
+      },
+      {
+        img: 'Instala%C3%A7%C3%A3o%20AIOX/8.png',
+        title: 'Reta final!',
+        desc: 'Última escolha: Community (grátis, muito completo) ou Pro (com squads premium e suporte). Os dois são incríveis. Escolheu? ENTER e AIOX INSTALADO.'
+      }
+    ];
+
+    let currentTutorialStep = 0; // 0 = intro, 1-8 = steps
+
+    function showTutorialStep(idx) {
+      if (idx <= 0) {
+        tutorialPanel.classList.remove('in-steps');
+        return;
+      }
+      tutorialPanel.classList.add('in-steps');
+      const step = TUTORIAL_STEPS[idx - 1];
+      if (!step) return;
+      stepCurrent.textContent = idx;
+      tutorialTitle.textContent = step.title;
+      tutorialDesc.textContent = step.desc;
+      tutorialImage.src = step.img;
+
+      // Update nav state
+      tutorialPrev.disabled = idx === 1;
+      const nextLabel = tutorialNext.querySelector('.label');
+      const nextIcon = tutorialNext.querySelector('.icon');
+      if (idx === TUTORIAL_STEPS.length) {
+        nextLabel.textContent = 'CONCLUIR';
+        nextIcon.textContent = '✓';
+      } else {
+        nextLabel.textContent = 'PRÓXIMO';
+        nextIcon.textContent = '→';
+      }
+    }
+
+    function openTutorial() {
+      currentTutorialStep = 0;
+      tutorialPanel.classList.remove('in-steps');
+      aioxTutorial.classList.add('active');
+    }
+
+    function closeTutorial() {
+      aioxTutorial.classList.remove('active');
+      currentTutorialStep = 0;
+      setTimeout(() => {
+        tutorialPanel.classList.remove('in-steps', 'in-finale');
+      }, 650);
+    }
+
+    function showFinale() {
+      tutorialPanel.classList.remove('in-steps');
+      tutorialPanel.classList.add('in-finale');
+    }
+
+    aioxStepsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openTutorial();
+    });
+
+    tutorialStart.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentTutorialStep = 1;
+      showTutorialStep(currentTutorialStep);
+    });
+
+    tutorialPrev.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (currentTutorialStep > 1) {
+        currentTutorialStep--;
+        showTutorialStep(currentTutorialStep);
+      }
+    });
+
+    tutorialNext.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (currentTutorialStep < TUTORIAL_STEPS.length) {
+        currentTutorialStep++;
+        showTutorialStep(currentTutorialStep);
+      } else {
+        // Last step → reveal finale celebration
+        showFinale();
+      }
+    });
+
+    tutorialClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTutorial();
+    });
+
+    tutorialFinish.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTutorial();
+    });
+
+    /* ========================================
+       MAIN BUTTON & LEFT BRANCH LOGIC
+       ======================================== */
+    let isOn = false;
+
+    function turnOn() {
+      isOn = true;
+      button.classList.add('pressed');
+      lightPath.classList.remove('drawing');
+      void lightPath.offsetWidth;
+      lightPath.classList.add('drawing');
+      try { tipAnim.beginElement(); } catch (e) {}
+    }
+
+    function turnOff() {
+      isOn = false;
+      button.classList.remove('pressed');
+      lightPath.classList.remove('drawing');
+    }
+
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!isOn) turnOn(); else turnOff();
+    });
+
+    function lockMonitor() {
+      hasOpenedNode = false;
+      monitorWrap.classList.add('locked');
+      monitorWrap.classList.remove('unlocking');
+      if (monitorHint) monitorHint.textContent = 'ABRA NODE.JS';
+    }
+
+    installButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (installButton.classList.contains('lit')) {
+        installButton.classList.remove('lit');
+        leftBranch.classList.remove('drawing');
+        rightBranch.classList.remove('drawing');
+        lockMonitor();
+      } else {
+        installButton.classList.add('lit', 'just-lit');
+        setTimeout(() => installButton.classList.remove('just-lit'), 700);
+        leftBranch.classList.remove('drawing');
+        rightBranch.classList.remove('drawing');
+        void leftBranch.offsetWidth;
+        void rightBranch.offsetWidth;
+        leftBranch.classList.add('drawing');
+        rightBranch.classList.add('drawing');
+        try { leftTipAnim.beginElement(); } catch (e) {}
+        try { rightTipAnim.beginElement(); } catch (e) {}
+        lockMonitor();
+      }
+    });
+
+    /* ========================================
+       TV STATIC + INSTALL COMMAND
+       ======================================== */
+    let stage = 0; // 0=off, 1=static, 2=command
+    let staticRAF = null;
+    let staticCtx = null;
+    let typingTimer = null;
+
+    function initStatic() {
+      staticCtx = tvStatic.getContext('2d');
+      tvStatic.width = 360;
+      tvStatic.height = 200;
+    }
+
+    function startStatic() {
+      if (!staticCtx) initStatic();
+      const w = tvStatic.width;
+      const h = tvStatic.height;
+      function draw() {
+        const imageData = staticCtx.createImageData(w, h);
+        const pixels = imageData.data;
+        for (let i = 0; i < pixels.length; i += 4) {
+          const v = Math.random() * 255;
+          pixels[i] = v;
+          pixels[i + 1] = v;
+          pixels[i + 2] = v;
+          pixels[i + 3] = 255;
+        }
+        staticCtx.putImageData(imageData, 0, 0);
+        staticRAF = requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    function stopStatic() {
+      if (staticRAF) {
+        cancelAnimationFrame(staticRAF);
+        staticRAF = null;
+      }
+    }
+
+    function typeCommand(text) {
+      cmdText.textContent = '';
+      let i = 0;
+      function next() {
+        if (i < text.length) {
+          cmdText.textContent += text[i];
+          i++;
+          typingTimer = setTimeout(next, 35 + Math.random() * 55);
+        }
+      }
+      next();
+    }
+
+    function clearTyping() {
+      if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+      cmdText.textContent = '';
+    }
+
+    monitorWrap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Locked — must open Node.js first
+      if (monitorWrap.classList.contains('locked')) {
+        monitorWrap.classList.remove('shake');
+        void monitorWrap.offsetWidth;
+        monitorWrap.classList.add('shake');
+        setTimeout(() => monitorWrap.classList.remove('shake'), 500);
+        return;
+      }
+      if (stage === 0) {
+        stage = 1;
+        tvOverlay.classList.add('active');
+        startStatic();
+        tvHint.textContent = 'CLIQUE PARA CONTINUAR';
+      }
+    });
+
+    tvOverlay.addEventListener('click', () => {
+      if (stage === 1) {
+        stage = 2;
+        tvOverlay.classList.add('tuned');
+        tvHint.textContent = 'USE OS BOTÕES';
+        setTimeout(() => typeCommand(INSTALL_CMD), 600);
+        claudeCodeSeen = true; // Mark as seen for marquee trigger
+      }
+      // Stage 2 stays — user must click VOLTAR or COPIAR
+    });
+
+    /* ---- Copy command ---- */
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      return Promise.resolve();
+    }
+
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(INSTALL_CMD);
+      copyBtn.classList.add('copied');
+      copyBtn.querySelector('.icon').textContent = '✓';
+      copyBtn.querySelector('.label').textContent = 'COPIADO';
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.querySelector('.icon').textContent = '⎘';
+        copyBtn.querySelector('.label').textContent = 'COPIAR';
+      }, 2000);
+    });
+
+    /* ---- Close TV overlay only (preserve everything else) ---- */
+    function closeTvOverlay() {
+      stage = 0;
+      tvOverlay.classList.remove('active', 'tuned');
+      tvHint.textContent = 'CLIQUE PARA CONTINUAR';
+      clearTyping();
+      setTimeout(stopStatic, 500);
+
+      // Show success marquee if user saw the install command
+      if (claudeCodeSeen) {
+        showSuccessMarquee();
+      }
+    }
+
+    /* ---- Success marquee lifecycle ---- */
+    function showSuccessMarquee() {
+      successMarquee.classList.add('visible');
+      successMarquee.classList.remove('aiox-mode'); // start in success mode
+      // After 2 minutes, switch content to AIOX CTA
+      if (marqueeTimer) clearTimeout(marqueeTimer);
+      marqueeTimer = setTimeout(switchToAioxMode, MARQUEE_DURATION);
+    }
+
+    function switchToAioxMode() {
+      if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
+      successMarquee.classList.add('aiox-mode');
+    }
+
+    // Click on marquee — behavior depends on mode
+    successMarquee.addEventListener('click', () => {
+      if (!successMarquee.classList.contains('visible')) return;
+      if (successMarquee.classList.contains('aiox-mode')) {
+        // AIOX CTA clicked — reveal AIOX scene + auto-pan
+        revealAioxScene();
+      } else {
+        // Skip to AIOX mode immediately
+        switchToAioxMode();
+      }
+    });
+
+    /* ========================================
+       AIOX SCENE — reveal + button + path + install
+       ======================================== */
+    function revealAioxScene() {
+      // Hide marquee
+      successMarquee.classList.remove('visible');
+      if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
+      // Reveal scene
+      aioxScene.classList.add('revealed');
+      // Auto-pan world up by 100vh to center AIOX scene
+      setTimeout(() => {
+        panY = -window.innerHeight;
+        panX = 0;
+        world.style.transition = 'transform 1.2s cubic-bezier(0.65, 0, 0.35, 1)';
+        world.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
+        setTimeout(() => { world.style.transition = ''; }, 1300);
+      }, 250);
+    }
+
+    // AIOX arcade button — toggle press + lime path
+    aioxArcadeButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!aioxOn) {
+        aioxOn = true;
+        aioxArcadeButton.classList.add('pressed');
+        aioxLightPath.classList.remove('drawing');
+        void aioxLightPath.offsetWidth;
+        aioxLightPath.classList.add('drawing');
+        try { aioxTipAnim.beginElement(); } catch (e) {}
+      } else {
+        aioxOn = false;
+        aioxArcadeButton.classList.remove('pressed');
+        aioxLightPath.classList.remove('drawing');
+      }
+    });
+
+    /* AIOX install command — typing + clipboard */
+    function typeAioxCmd(text) {
+      if (aioxCmdTypingTimer) clearTimeout(aioxCmdTypingTimer);
+      aioxCmdText.textContent = '';
+      let i = 0;
+      function next() {
+        if (i < text.length) {
+          aioxCmdText.textContent += text[i];
+          i++;
+          aioxCmdTypingTimer = setTimeout(next, 35 + Math.random() * 55);
+        }
+      }
+      next();
+    }
+
+    function clearAioxCmdTyping() {
+      if (aioxCmdTypingTimer) { clearTimeout(aioxCmdTypingTimer); aioxCmdTypingTimer = null; }
+      aioxCmdText.textContent = '';
+    }
+
+    function closeAioxCmdOverlay() {
+      aioxCmdOverlay.classList.remove('active');
+      clearAioxCmdTyping();
+    }
+
+    // AIOX install button — light word + downward path + open command overlay
+    aioxInstallButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (aioxInstallButton.classList.contains('lit')) {
+        // Toggle off
+        aioxInstallButton.classList.remove('lit');
+        aioxCmdPath.classList.remove('drawing');
+        closeAioxCmdOverlay();
+      } else {
+        // Light + draw path + open overlay after path completes
+        aioxInstallButton.classList.add('lit', 'just-lit');
+        setTimeout(() => aioxInstallButton.classList.remove('just-lit'), 700);
+
+        aioxCmdPath.classList.remove('drawing');
+        void aioxCmdPath.offsetWidth;
+        aioxCmdPath.classList.add('drawing');
+        try { aioxCmdTipAnim.beginElement(); } catch (e) {}
+
+        setTimeout(() => {
+          aioxCmdOverlay.classList.add('active');
+          setTimeout(() => typeAioxCmd(AIOX_INSTALL_CMD), 600);
+        }, 1050);
+      }
+    });
+
+    aioxCopyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(AIOX_INSTALL_CMD);
+      aioxCopyBtn.classList.add('copied');
+      aioxCopyBtn.querySelector('.icon').textContent = '✓';
+      aioxCopyBtn.querySelector('.label').textContent = 'COPIADO';
+      setTimeout(() => {
+        aioxCopyBtn.classList.remove('copied');
+        aioxCopyBtn.querySelector('.icon').textContent = '⎘';
+        aioxCopyBtn.querySelector('.label').textContent = 'COPIAR';
+      }, 2000);
+    });
+
+    aioxBackBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAioxCmdOverlay();
+    });
+
+    aioxHomeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fullReset();
+    });
+
+    backBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTvOverlay();
+    });
+
+    /* ========================================
+       NODE.JS OVERLAY (OS tabs + commands)
+       ======================================== */
+    let nodeTypingTimer = null;
+
+    function typeNodeCommand(text) {
+      if (nodeTypingTimer) clearTimeout(nodeTypingTimer);
+      nodeCmdText.textContent = '';
+      let i = 0;
+      function next() {
+        if (i < text.length) {
+          nodeCmdText.textContent += text[i];
+          i++;
+          nodeTypingTimer = setTimeout(next, 35 + Math.random() * 55);
+        }
+      }
+      next();
+    }
+
+    function clearNodeTyping() {
+      if (nodeTypingTimer) { clearTimeout(nodeTypingTimer); nodeTypingTimer = null; }
+      nodeCmdText.textContent = '';
+    }
+
+    function closeNodeOverlay() {
+      nodeOverlay.classList.remove('active');
+      nodeLogoWrap.classList.remove('lit');
+      clearNodeTyping();
+    }
+
+    nodeLogoWrap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      nodeLogoWrap.classList.add('lit');
+      nodeOverlay.classList.add('active');
+      // Reset to mac tab default
+      currentOS = 'mac';
+      osTabs.forEach(t => t.classList.toggle('active', t.dataset.os === 'mac'));
+      setTimeout(() => typeNodeCommand(NODE_CMDS.mac), 700);
+
+      // UNLOCK monitor (only first time)
+      if (!hasOpenedNode) {
+        hasOpenedNode = true;
+        monitorWrap.classList.remove('locked');
+        monitorWrap.classList.add('unlocking');
+        if (monitorHint) monitorHint.textContent = 'CLIQUE';
+        setTimeout(() => monitorWrap.classList.remove('unlocking'), 900);
+      }
+    });
+
+    osTabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (tab.classList.contains('active')) return;
+        osTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentOS = tab.dataset.os;
+        typeNodeCommand(NODE_CMDS[currentOS]);
+      });
+    });
+
+    nodeCopyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(NODE_CMDS[currentOS]);
+      nodeCopyBtn.classList.add('copied');
+      nodeCopyBtn.querySelector('.icon').textContent = '✓';
+      nodeCopyBtn.querySelector('.label').textContent = 'COPIADO';
+      setTimeout(() => {
+        nodeCopyBtn.classList.remove('copied');
+        nodeCopyBtn.querySelector('.icon').textContent = '⎘';
+        nodeCopyBtn.querySelector('.label').textContent = 'COPIAR';
+      }, 2000);
+    });
+
+    nodeBackBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeNodeOverlay();
+    });
+
+    /* ========================================
+       FULL RESET (INÍCIO buttons)
+       Reset everything to the very initial state
+       ======================================== */
+    function fullReset() {
+      // Close both overlays
+      closeTvOverlay();
+      closeNodeOverlay();
+
+      // Reset install button + both branches
+      installButton.classList.remove('lit', 'just-lit');
+      leftBranch.classList.remove('drawing');
+      rightBranch.classList.remove('drawing');
+
+      // Reset Claude Code main button
+      if (isOn) turnOff();
+
+      // Re-lock monitor (must reopen Node first)
+      lockMonitor();
+
+      // Hide success marquee + reset mode + seen flag
+      claudeCodeSeen = false;
+      if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
+      successMarquee.classList.remove('visible', 'aiox-mode');
+
+      // Reset AIOX scene + command overlay + tutorial
+      aioxScene.classList.remove('revealed');
+      aioxArcadeButton.classList.remove('pressed');
+      aioxLightPath.classList.remove('drawing');
+      aioxInstallButton.classList.remove('lit', 'just-lit');
+      aioxCmdPath.classList.remove('drawing');
+      closeAioxCmdOverlay();
+      closeTutorial();
+      aioxOn = false;
+
+      // Recenter pan
+      panX = 0; panY = 0;
+      world.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.32, 0.5, 1)';
+      world.style.transform = 'translate3d(0, 0, 0)';
+      setTimeout(() => { world.style.transition = ''; }, 700);
+    }
+
+    homeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fullReset();
+    });
+
+    nodeHomeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fullReset();
+    });
+
+    /* ========================================
+       PAN / DRAG (Figma/Miro style)
+       ======================================== */
+    let panX = 0, panY = 0;
+    let startX = 0, startY = 0;
+    let isDragging = false;
+    let mouseDownAt = null;
+    const DRAG_THRESHOLD = 5;
+
+    function isInteractive(el) {
+      return !!el.closest('button, .monitor-wrap, .node-logo-wrap, .tv-overlay, .node-overlay, .aiox-cmd-overlay, .aiox-tutorial-overlay, .success-marquee');
+    }
+
+    document.addEventListener('mousedown', (e) => {
+      if (tvOverlay.classList.contains('active')) return;
+      if (nodeOverlay.classList.contains('active')) return;
+      if (aioxCmdOverlay.classList.contains('active')) return;
+      if (aioxTutorial.classList.contains('active')) return;
+      if (isInteractive(e.target)) return;
+      mouseDownAt = { x: e.clientX, y: e.clientY };
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!mouseDownAt) return;
+      if (!isDragging) {
+        const dx = Math.abs(e.clientX - mouseDownAt.x);
+        const dy = Math.abs(e.clientY - mouseDownAt.y);
+        if (dx + dy < DRAG_THRESHOLD) return;
+        isDragging = true;
+        document.body.classList.add('dragging');
+      }
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      world.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      mouseDownAt = null;
+      if (isDragging) {
+        isDragging = false;
+        document.body.classList.remove('dragging');
+      }
+    });
+
+    document.addEventListener('mouseleave', () => {
+      mouseDownAt = null;
+      if (isDragging) {
+        isDragging = false;
+        document.body.classList.remove('dragging');
+      }
+    });
+
+    /* ESC: close topmost overlay (preserve everything else) */
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (aioxTutorial.classList.contains('active')) {
+        closeTutorial();
+      } else if (aioxCmdOverlay.classList.contains('active')) {
+        closeAioxCmdOverlay();
+      } else if (nodeOverlay.classList.contains('active')) {
+        closeNodeOverlay();
+      } else if (tvOverlay.classList.contains('active')) {
+        closeTvOverlay();
+      }
+    });
+
+    /* Arrow keys navigate tutorial */
+    document.addEventListener('keydown', (e) => {
+      if (!aioxTutorial.classList.contains('active')) return;
+      // Finale state — Enter closes
+      if (tutorialPanel.classList.contains('in-finale')) {
+        if (e.key === 'Enter') closeTutorial();
+        return;
+      }
+      if (currentTutorialStep === 0) return;
+      if (e.key === 'ArrowRight') {
+        if (currentTutorialStep < TUTORIAL_STEPS.length) {
+          currentTutorialStep++;
+          showTutorialStep(currentTutorialStep);
+        } else {
+          showFinale();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (currentTutorialStep > 1) {
+          currentTutorialStep--;
+          showTutorialStep(currentTutorialStep);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
