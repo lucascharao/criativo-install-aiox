@@ -2560,6 +2560,427 @@
     transform: translateX(-50%) scale(0.97);
   }
 
+  /* ========================================
+     UX FIXES — P0/P1 improvements
+     ======================================== */
+
+  /* Click-to-advance hint above marquee */
+  .marquee-click-hint {
+    position: fixed;
+    left: 50%;
+    bottom: calc(2vh + 84px + 10px);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #ffdd99;
+    text-shadow:
+      0 0 6px rgba(255, 220, 130, 0.85),
+      0 0 14px rgba(255, 170, 70, 0.55),
+      0 0 28px rgba(255, 107, 26, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    z-index: 55;
+    white-space: nowrap;
+  }
+
+  .marquee-click-hint.visible {
+    opacity: 1;
+    animation: click-hint-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes click-hint-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  .marquee-click-hint .arrow-down {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 11px solid #ff8533;
+    filter: drop-shadow(0 0 6px rgba(255, 170, 70, 0.9));
+    animation: arrow-bounce 0.95s ease-in-out infinite;
+  }
+
+  @keyframes arrow-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+  }
+
+  /* Background "tap" pulse around the hint */
+  .marquee-click-hint::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    left: -18px;
+    right: -18px;
+    border: 1px solid rgba(255, 170, 70, 0.25);
+    border-radius: 3px;
+    animation: hint-frame-pulse 1.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes hint-frame-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.04); }
+  }
+
+  /* Marquee progress bar (top of strip) */
+  .marquee-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 107, 26, 0.15);
+    z-index: 7;
+    pointer-events: none;
+  }
+
+  .marquee-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #ffaa44, #ff6b1a, #cc4400);
+    box-shadow: 0 0 8px rgba(255, 107, 26, 0.7);
+  }
+
+  .success-marquee.aiox-mode .marquee-progress {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  /* Floating reset-view button (top-right, only when panned) */
+  .reset-view-btn {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.75);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    cursor: pointer;
+    z-index: 990;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px) scale(0.95);
+    transition:
+      opacity 0.35s ease,
+      transform 0.35s cubic-bezier(0.34, 1.32, 0.5, 1),
+      border-color 0.3s ease,
+      color 0.3s ease,
+      background 0.3s ease;
+    outline: none;
+    -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+  }
+
+  .reset-view-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+
+  .reset-view-btn:hover {
+    border-color: rgba(255, 255, 255, 0.55);
+    color: #ffffff;
+    background: rgba(20, 20, 20, 0.9);
+    box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+  }
+
+  .reset-view-btn .icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  /* Padlock SVG overlay on locked monitor */
+  .lock-overlay {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: auto;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: 4;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
+  }
+
+  .monitor-wrap.locked .lock-overlay {
+    opacity: 0.95;
+  }
+
+  .lock-overlay svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    shape-rendering: crispEdges;
+  }
+
+  .lock-overlay svg rect {
+    fill: rgba(230, 230, 230, 0.92);
+  }
+
+  /* Tutorial progress dots (replaces text-only indicator at top) */
+  .tutorial-progress {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .tutorial-progress-dot {
+    width: 22px;
+    height: 5px;
+    background: rgba(220, 255, 100, 0.18);
+    border-radius: 1px;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+  }
+
+  .tutorial-progress-dot.active {
+    background: #d4ff66;
+    box-shadow:
+      0 0 4px rgba(220, 255, 100, 0.7),
+      0 0 10px rgba(212, 255, 0, 0.5);
+  }
+
+  .tutorial-progress-dot.passed {
+    background: rgba(180, 220, 80, 0.55);
+  }
+
+  /* Universal "Clique aqui" hint — positioned to the SIDE (right) to avoid overlap with paths */
+  .click-hint-above,
+  .click-hint-below {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 18px);
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255, 220, 130, 0.88);
+    text-shadow:
+      0 0 6px rgba(255, 220, 130, 0.65),
+      0 0 14px rgba(255, 170, 70, 0.45);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 6;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .hint-active > .click-hint-above,
+  .hint-active > .click-hint-below {
+    opacity: 1;
+  }
+
+  .click-hint-above .arrow,
+  .click-hint-below .arrow {
+    font-size: 14px;
+    line-height: 1;
+    color: #ff8533;
+    text-shadow:
+      0 0 6px rgba(255, 170, 70, 0.85),
+      0 0 12px rgba(255, 107, 26, 0.55);
+    animation: action-arrow-bounce-h 0.95s ease-in-out infinite;
+  }
+
+  .click-hint-above .text,
+  .click-hint-below .text {
+    animation: action-hint-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes action-arrow-bounce-h {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-5px); }
+  }
+
+  /* Lime variant for AIOX scene */
+  .aiox-scene .click-hint-above,
+  .aiox-scene .click-hint-below {
+    color: rgba(220, 255, 130, 0.9);
+    text-shadow:
+      0 0 6px rgba(220, 255, 130, 0.65),
+      0 0 14px rgba(212, 255, 0, 0.5);
+  }
+
+  .aiox-scene .click-hint-above .arrow,
+  .aiox-scene .click-hint-below .arrow {
+    color: #d4ff66;
+    text-shadow:
+      0 0 6px rgba(220, 255, 100, 0.85),
+      0 0 12px rgba(212, 255, 0, 0.55);
+  }
+
+  /* Hide hints when button is in active/pressed/lit state */
+  .arcade-button.pressed .click-hint-below,
+  .aiox-arcade-button.pressed .click-hint-below,
+  .install-button.lit .click-hint-above {
+    opacity: 0;
+  }
+
+  /* Action hint with arrow — guides user to primary button (intro/finale) */
+  .action-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(220, 255, 100, 0.78);
+    text-shadow: 0 0 6px rgba(212, 255, 0, 0.45);
+    margin-bottom: -8px;
+  }
+
+  .action-hint .action-arrow {
+    font-size: 16px;
+    line-height: 1;
+    color: #d4ff66;
+    text-shadow:
+      0 0 6px rgba(220, 255, 100, 0.85),
+      0 0 14px rgba(212, 255, 0, 0.6);
+    animation: action-arrow-bounce 0.95s ease-in-out infinite;
+  }
+
+  .action-hint .action-text {
+    animation: action-hint-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes action-hint-pulse {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes action-arrow-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+  }
+
+  /* Nav hint above step buttons */
+  .nav-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(220, 255, 100, 0.75);
+    text-shadow: 0 0 6px rgba(212, 255, 0, 0.45);
+    margin: 0;
+    padding-top: 2px;
+    text-align: center;
+    animation: action-hint-pulse 1.6s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .nav-hint::before,
+  .nav-hint::after {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(220, 255, 100, 0.6), transparent);
+  }
+
+  /* Pulse glow on PRIMARY buttons in intro/finale */
+  #tutorialStart,
+  #tutorialFinish {
+    animation: primary-btn-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes primary-btn-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 18px rgba(212, 255, 0, 0.25),
+        inset 0 0 14px rgba(212, 255, 0, 0.08);
+    }
+    50% {
+      box-shadow:
+        0 0 32px rgba(212, 255, 0, 0.6),
+        0 0 60px rgba(212, 255, 0, 0.25),
+        inset 0 0 20px rgba(212, 255, 0, 0.18);
+    }
+  }
+
+  /* Keyboard hint below tutorial nav */
+  .keyboard-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: rgba(220, 255, 100, 0.5);
+    margin: 0;
+    padding-top: 6px;
+    text-align: center;
+  }
+
+  .keyboard-hint kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 0 2px;
+    background: rgba(220, 255, 100, 0.1);
+    border: 1px solid rgba(220, 255, 100, 0.3);
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(240, 255, 200, 0.8);
+  }
+
+  /* Confetti — only animates inside .in-finale (perf fix) */
+  .confetti-piece {
+    animation: none;
+  }
+
+  .tutorial-panel.in-finale .confetti-piece {
+    animation: confetti-fall linear infinite;
+  }
+
+  /* === prefers-reduced-motion === */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .confetti-piece,
+    .tutorial-panel.in-finale .confetti-piece {
+      display: none !important;
+    }
+  }
+
   /* Responsive */
   @media (max-width: 640px) {
     .arcade-button { width: 160px; height: 160px; }
@@ -2579,6 +3000,10 @@
       <div class="arcade-shadow"></div>
       <img class="arcade-img" src="claudecode-botao.png" alt="Claude Code">
       <div class="arcade-glow"></div>
+      <span class="click-hint-below">
+        <span class="arrow">◄</span>
+        <span class="text">Clique aqui</span>
+      </span>
     </button>
 
     <!-- LIGHT PATH -->
@@ -2627,7 +3052,7 @@
       <div class="node-logo-wrap" id="nodeLogoWrap">
         <img src="nodeJS.png" alt="Node.js">
         <div class="step-badge">01 ▸ PRIMEIRO</div>
-        <div class="monitor-hint">CLIQUE</div>
+        <div class="monitor-hint">Clique aqui</div>
       </div>
     </div>
 
@@ -2659,6 +3084,14 @@
       <!-- CRT MONITOR at end of right branch (STEP 2 — locked initially) -->
       <div class="monitor-wrap locked" id="monitorWrap">
         <img src="Pc_install.png" alt="Instalar">
+        <div class="lock-overlay">
+          <svg viewBox="0 0 7 9" aria-hidden="true">
+            <rect x="2" y="0" width="3" height="1"/>
+            <rect x="1" y="1" width="1" height="3"/>
+            <rect x="5" y="1" width="1" height="3"/>
+            <rect x="0" y="4" width="7" height="5"/>
+          </svg>
+        </div>
         <div class="step-badge">02 ▸ DEPOIS</div>
         <div class="monitor-hint" id="monitorHint">ABRA NODE.JS</div>
       </div>
@@ -2666,6 +3099,10 @@
 
     <!-- INSTALL BUTTON -->
     <button class="install-button" id="installButton">
+      <span class="click-hint-above">
+        <span class="arrow">◄</span>
+        <span class="text">Clique aqui</span>
+      </span>
       <div class="install-shadow"></div>
       <img class="install-img" src="Instala%C3%A7%C3%A3o.png" alt="Instalação">
       <span class="word-glow">Instalação</span>
@@ -2677,6 +3114,10 @@
     <button class="aiox-arcade-button" id="aioxArcadeButton" aria-label="AIOX">
       <div class="aiox-arcade-shadow"></div>
       <img class="aiox-arcade-img" src="aiox-logo.png" alt="AIOX">
+      <span class="click-hint-below">
+        <span class="arrow">◄</span>
+        <span class="text">Clique aqui</span>
+      </span>
     </button>
 
     <!-- Lime green light path -->
@@ -2698,6 +3139,10 @@
 
     <!-- AIOX Instalação button (reuses install-button base, lime overrides) -->
     <button class="install-button" id="aioxInstallButton">
+      <span class="click-hint-above">
+        <span class="arrow">◄</span>
+        <span class="text">Clique aqui</span>
+      </span>
       <div class="install-shadow"></div>
       <img class="install-img" src="Instala%C3%A7%C3%A3o.png" alt="Instalação">
       <span class="word-glow">Instalação</span>
@@ -2721,6 +3166,18 @@
     </div>
   </div>
   </div><!-- /#world -->
+
+  <!-- FLOATING RESET-VIEW BUTTON (appears when canvas is panned) -->
+  <button class="reset-view-btn" id="resetView" type="button">
+    <span class="icon">⌂</span>
+    <span class="label">TOPO</span>
+  </button>
+
+  <!-- "CLIQUE NO LETREIRO" hint — above marquee, success mode only -->
+  <div class="marquee-click-hint" id="marqueeClickHint" aria-hidden="true">
+    <span>Clique no letreiro para avançar</span>
+    <span class="arrow-down"></span>
+  </div>
 
   <!-- AIOX INSTALL COMMAND OVERLAY -->
   <div class="aiox-cmd-overlay" id="aioxCmdOverlay">
@@ -2770,6 +3227,10 @@
           O processo é bem intuitivo,<br>
           em caso de dúvida, <span class="accent">leia rsrs</span>
         </p>
+        <div class="action-hint">
+          <span class="action-text">Aperte o botão para iniciar</span>
+          <span class="action-arrow">▼</span>
+        </div>
         <button class="tv-btn" id="tutorialStart" type="button">
           <span class="icon">▶</span>
           <span class="label">COMEÇAR</span>
@@ -2781,11 +3242,22 @@
         <div class="step-indicator">
           ETAPA <span class="step-current-num" id="stepCurrent">1</span> / <span id="stepTotal">8</span>
         </div>
+        <div class="tutorial-progress" id="tutorialProgress">
+          <span class="tutorial-progress-dot" data-step="1"></span>
+          <span class="tutorial-progress-dot" data-step="2"></span>
+          <span class="tutorial-progress-dot" data-step="3"></span>
+          <span class="tutorial-progress-dot" data-step="4"></span>
+          <span class="tutorial-progress-dot" data-step="5"></span>
+          <span class="tutorial-progress-dot" data-step="6"></span>
+          <span class="tutorial-progress-dot" data-step="7"></span>
+          <span class="tutorial-progress-dot" data-step="8"></span>
+        </div>
         <h2 class="tutorial-title" id="tutorialTitle"></h2>
         <p class="tutorial-desc" id="tutorialDesc"></p>
         <div class="tutorial-image-wrap">
           <img class="tutorial-image" id="tutorialImage" src="" alt="Passo">
         </div>
+        <p class="nav-hint">Clique nos botões para navegar</p>
         <div class="tutorial-nav">
           <button class="tv-btn" id="tutorialPrev" type="button">
             <span class="icon">←</span>
@@ -2800,6 +3272,9 @@
             <span class="label">FECHAR</span>
           </button>
         </div>
+        <p class="keyboard-hint">
+          <kbd>←</kbd> <kbd>→</kbd> navegar &middot; <kbd>ESC</kbd> fechar
+        </p>
       </div>
 
       <!-- FINALE state — celebration -->
@@ -2845,6 +3320,10 @@
         <p class="finale-tagline">
           [ Code first · Sleep later · Repeat ]
         </p>
+        <div class="action-hint">
+          <span class="action-text">Clique para finalizar</span>
+          <span class="action-arrow">▼</span>
+        </div>
         <button class="tv-btn" id="tutorialFinish" type="button">
           <span class="icon">✓</span>
           <span class="label">CONCLUIR</span>
@@ -2883,6 +3362,9 @@
 
   <!-- PIXELATED SUCCESS MARQUEE -->
   <div class="success-marquee" id="successMarquee">
+    <div class="marquee-progress">
+      <div class="marquee-progress-fill" id="marqueeProgressFill"></div>
+    </div>
     <div class="marquee-leds marquee-leds-top"></div>
 
     <!-- SUCCESS MODE — Claude Code installed -->
@@ -3010,7 +3492,11 @@
     let claudeCodeSeen = false;
     const monitorHint = document.getElementById('monitorHint');
     const successMarquee = document.getElementById('successMarquee');
-    const MARQUEE_DURATION = 2 * 60 * 1000; // 2 minutes
+    const marqueeProgressFill = document.getElementById('marqueeProgressFill');
+    const marqueeClickHint = document.getElementById('marqueeClickHint');
+    const resetView = document.getElementById('resetView');
+    const tutorialProgress = document.getElementById('tutorialProgress');
+    const MARQUEE_DURATION = 30 * 1000; // 30 seconds
     let marqueeTimer = null;
 
     // AIOX scene references
@@ -3113,7 +3599,22 @@
         nextLabel.textContent = 'PRÓXIMO';
         nextIcon.textContent = '→';
       }
+
+      // Update progress dots
+      const dots = tutorialProgress.querySelectorAll('.tutorial-progress-dot');
+      dots.forEach((dot, i) => {
+        dot.classList.remove('active', 'passed');
+        const stepNum = i + 1;
+        if (stepNum < idx) dot.classList.add('passed');
+        else if (stepNum === idx) dot.classList.add('active');
+      });
     }
+
+    /* Preload tutorial images on page load */
+    TUTORIAL_STEPS.forEach(s => {
+      const img = new Image();
+      img.src = s.img;
+    });
 
     function openTutorial() {
       currentTutorialStep = 0;
@@ -3179,6 +3680,9 @@
        ======================================== */
     let isOn = false;
 
+    /* Initial sequence: only mainButton hint visible */
+    button.classList.add('hint-active');
+
     function turnOn() {
       isOn = true;
       button.classList.add('pressed');
@@ -3186,12 +3690,18 @@
       void lightPath.offsetWidth;
       lightPath.classList.add('drawing');
       try { tipAnim.beginElement(); } catch (e) {}
+      // Sequence: mainButton done → installButton next
+      button.classList.remove('hint-active');
+      installButton.classList.add('hint-active');
     }
 
     function turnOff() {
       isOn = false;
       button.classList.remove('pressed');
       lightPath.classList.remove('drawing');
+      // Revert sequence: bring mainButton hint back, hide installButton's
+      button.classList.add('hint-active');
+      installButton.classList.remove('hint-active');
     }
 
     button.addEventListener('click', (e) => {
@@ -3213,6 +3723,8 @@
         leftBranch.classList.remove('drawing');
         rightBranch.classList.remove('drawing');
         lockMonitor();
+        // Revert sequence
+        installButton.classList.add('hint-active');
       } else {
         installButton.classList.add('lit', 'just-lit');
         setTimeout(() => installButton.classList.remove('just-lit'), 700);
@@ -3225,6 +3737,8 @@
         try { leftTipAnim.beginElement(); } catch (e) {}
         try { rightTipAnim.beginElement(); } catch (e) {}
         lockMonitor();
+        // Sequence done — next hints (Node/Monitor) are in branches
+        installButton.classList.remove('hint-active');
       }
     });
 
@@ -3362,14 +3876,38 @@
     function showSuccessMarquee() {
       successMarquee.classList.add('visible');
       successMarquee.classList.remove('aiox-mode'); // start in success mode
-      // After 2 minutes, switch content to AIOX CTA
+
+      // Animate progress bar over MARQUEE_DURATION
+      if (marqueeProgressFill) {
+        marqueeProgressFill.style.transition = 'none';
+        marqueeProgressFill.style.width = '0%';
+        void marqueeProgressFill.offsetWidth; // reflow
+        marqueeProgressFill.style.transition = `width ${MARQUEE_DURATION}ms linear`;
+        marqueeProgressFill.style.width = '100%';
+      }
+
       if (marqueeTimer) clearTimeout(marqueeTimer);
       marqueeTimer = setTimeout(switchToAioxMode, MARQUEE_DURATION);
+
+      // Show "click to advance" hint after small delay
+      setTimeout(() => {
+        if (successMarquee.classList.contains('visible') &&
+            !successMarquee.classList.contains('aiox-mode')) {
+          marqueeClickHint.classList.add('visible');
+        }
+      }, 1200);
     }
 
     function switchToAioxMode() {
       if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
       successMarquee.classList.add('aiox-mode');
+      // Hide click-hint (AIOX mode already has its own CTA in marquee text)
+      marqueeClickHint.classList.remove('visible');
+      // Reset progress bar — no time limit in AIOX mode
+      if (marqueeProgressFill) {
+        marqueeProgressFill.style.transition = 'none';
+        marqueeProgressFill.style.width = '0%';
+      }
     }
 
     // Click on marquee — behavior depends on mode
@@ -3393,13 +3931,18 @@
       if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
       // Reveal scene
       aioxScene.classList.add('revealed');
+      // Start AIOX sequence: aioxArcadeButton hint active
+      aioxArcadeButton.classList.add('hint-active');
       // Auto-pan world up by 100vh to center AIOX scene
       setTimeout(() => {
         panY = -window.innerHeight;
         panX = 0;
         world.style.transition = 'transform 1.2s cubic-bezier(0.65, 0, 0.35, 1)';
         world.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
-        setTimeout(() => { world.style.transition = ''; }, 1300);
+        setTimeout(() => {
+          world.style.transition = '';
+          updateResetViewVisibility();
+        }, 1300);
       }, 250);
     }
 
@@ -3413,10 +3956,16 @@
         void aioxLightPath.offsetWidth;
         aioxLightPath.classList.add('drawing');
         try { aioxTipAnim.beginElement(); } catch (e) {}
+        // Sequence: arcade done → install next
+        aioxArcadeButton.classList.remove('hint-active');
+        aioxInstallButton.classList.add('hint-active');
       } else {
         aioxOn = false;
         aioxArcadeButton.classList.remove('pressed');
         aioxLightPath.classList.remove('drawing');
+        // Revert
+        aioxArcadeButton.classList.add('hint-active');
+        aioxInstallButton.classList.remove('hint-active');
       }
     });
 
@@ -3453,6 +4002,8 @@
         aioxInstallButton.classList.remove('lit');
         aioxCmdPath.classList.remove('drawing');
         closeAioxCmdOverlay();
+        // Revert sequence
+        aioxInstallButton.classList.add('hint-active');
       } else {
         // Light + draw path + open overlay after path completes
         aioxInstallButton.classList.add('lit', 'just-lit');
@@ -3467,6 +4018,8 @@
           aioxCmdOverlay.classList.add('active');
           setTimeout(() => typeAioxCmd(AIOX_INSTALL_CMD), 600);
         }, 1050);
+        // Sequence done — next hints are inside the overlay (already always visible)
+        aioxInstallButton.classList.remove('hint-active');
       }
     });
 
@@ -3542,7 +4095,7 @@
         hasOpenedNode = true;
         monitorWrap.classList.remove('locked');
         monitorWrap.classList.add('unlocking');
-        if (monitorHint) monitorHint.textContent = 'CLIQUE';
+        if (monitorHint) monitorHint.textContent = 'Clique aqui';
         setTimeout(() => monitorWrap.classList.remove('unlocking'), 900);
       }
     });
@@ -3596,10 +4149,11 @@
       // Re-lock monitor (must reopen Node first)
       lockMonitor();
 
-      // Hide success marquee + reset mode + seen flag
+      // Hide success marquee + reset mode + seen flag + click-hint
       claudeCodeSeen = false;
       if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
       successMarquee.classList.remove('visible', 'aiox-mode');
+      marqueeClickHint.classList.remove('visible');
 
       // Reset AIOX scene + command overlay + tutorial
       aioxScene.classList.remove('revealed');
@@ -3615,7 +4169,14 @@
       panX = 0; panY = 0;
       world.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.32, 0.5, 1)';
       world.style.transform = 'translate3d(0, 0, 0)';
-      setTimeout(() => { world.style.transition = ''; }, 700);
+      setTimeout(() => {
+        world.style.transition = '';
+        updateResetViewVisibility();
+      }, 700);
+
+      // Reset hint sequence: only mainButton hint visible again
+      document.querySelectorAll('.hint-active').forEach(el => el.classList.remove('hint-active'));
+      button.classList.add('hint-active');
     }
 
     homeBtn.addEventListener('click', (e) => {
@@ -3664,6 +4225,26 @@
       panX = e.clientX - startX;
       panY = e.clientY - startY;
       world.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
+      updateResetViewVisibility();
+    });
+
+    function updateResetViewVisibility() {
+      if (Math.abs(panX) > 60 || Math.abs(panY) > 60) {
+        resetView.classList.add('visible');
+      } else {
+        resetView.classList.remove('visible');
+      }
+    }
+
+    resetView.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panX = 0; panY = 0;
+      world.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.32, 0.5, 1)';
+      world.style.transform = 'translate3d(0, 0, 0)';
+      setTimeout(() => {
+        world.style.transition = '';
+        updateResetViewVisibility();
+      }, 700);
     });
 
     document.addEventListener('mouseup', () => {
