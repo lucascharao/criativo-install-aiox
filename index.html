@@ -22,6 +22,20 @@
     font-family: system-ui, sans-serif;
     user-select: none;
     cursor: grab;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Desktop: trava scroll, pan/drag faz a navegação */
+  @media (min-width: 769px) and (pointer: fine) {
+    html, body { touch-action: none; }
+  }
+  /* Mobile: scroll vertical natural, sem pan/drag */
+  @media (max-width: 768px), (pointer: coarse) {
+    html, body {
+      overflow-y: auto;
+      overflow-x: hidden;
+      cursor: default;
+      -webkit-overflow-scrolling: touch;
+    }
   }
 
   body.dragging,
@@ -2981,14 +2995,326 @@
     }
   }
 
-  /* Responsive */
-  @media (max-width: 640px) {
-    .arcade-button { width: 160px; height: 160px; }
-    .install-button { width: 240px; }
-    .light-path-wrap {
-      top: calc(11vh + 170px);
-      bottom: calc(12vh + 160px);
+  /* Responsive — Tablet/Mobile: empilha cenas verticalmente para scroll natural */
+  @media (max-width: 768px) {
+    /* World vira coluna scrollável */
+    #world {
+      width: 100vw;
+      height: auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transform: none !important;
     }
+    /* Cenas viram blocos empilhados, altura natural */
+    .scene, .aiox-scene {
+      width: 100vw;
+      height: auto;
+      min-height: auto;
+      padding: 6vh 0 4vh;
+      gap: 32px;
+      justify-content: flex-start;
+    }
+
+    /* Ordem mobile correta:
+       1. Arcade button Claude Code (default)
+       2. Light path (linha desce)
+       3. Install button verde
+       4. Left branch (Node.js logo aparece DEPOIS de clicar Instalação)
+       5. Right branch (Monitor CRT, idem) */
+    .scene > .arcade-button   { order: 1; }
+    .scene > .light-path-wrap { order: 2; }
+    .scene > .install-button  { order: 3; }
+    .scene > .left-branch-wrap  { order: 4; }
+    .scene > .right-branch-wrap { order: 5; }
+    /* AIOX scene em mobile: só aparece quando JS adiciona .revealed
+       (clique no AIOX CTA do marquee) — mantém fluxo sequencial original */
+    .aiox-scene:not(.revealed) { display: none; }
+
+    /* Ramificações verdes laterais (SVGs decorativos) somem em mobile —
+       não cabem em viewport estreita. Mantém wrap container como flex
+       centralizado pra Node logo e Monitor CRT aparecerem inline DEPOIS
+       que .drawing for adicionado pelo JS (mantém sequência original). */
+    .left-branch-wrap, .right-branch-wrap {
+      position: relative !important;
+      left: auto !important;
+      right: auto !important;
+      top: auto !important;
+      bottom: auto !important;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      opacity: 1;
+      transform: none !important;
+      pointer-events: auto !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding-top: 32px;
+    }
+    /* Esconde wraps até o usuário clicar em Instalação (.drawing) */
+    .left-branch-wrap:not(.drawing), .right-branch-wrap:not(.drawing) {
+      display: none !important;
+    }
+    .left-branch-svg, .right-branch-svg { display: none !important; }
+
+    /* Linha verde neon conectando install -> Node, e Node -> Monitor.
+       Substitui as ramificações SVG (que eram horizontais em desktop). */
+    .left-branch-wrap.drawing::before,
+    .right-branch-wrap.drawing::before {
+      content: '';
+      display: block;
+      width: 2px;
+      height: 32px;
+      background: linear-gradient(180deg, #6ed85e, #c8ff96);
+      box-shadow:
+        0 0 6px rgba(110, 216, 94, 0.8),
+        0 0 14px rgba(110, 216, 94, 0.5);
+      margin-bottom: 16px;
+      animation: branch-line-grow 0.6s ease-out;
+    }
+    @keyframes branch-line-grow {
+      from { height: 0; opacity: 0; }
+      to { height: 32px; opacity: 1; }
+    }
+
+    /* Node.js logo + Monitor CRT viram inline no fluxo natural — mas
+       SEM forçar opacity, deixando CSS original controlar reveal por estado */
+    .node-logo-wrap, .monitor-wrap {
+      position: relative !important;
+      left: auto !important;
+      right: auto !important;
+      top: auto !important;
+      bottom: auto !important;
+      transform: none !important;
+      margin: 0 auto;
+    }
+    /* Light path vertical entre arcade e install: encurta */
+    .light-path-wrap {
+      position: relative !important;
+      top: auto !important;
+      bottom: auto !important;
+      left: auto !important;
+      right: auto !important;
+      transform: none !important;
+      width: 6px !important;
+      height: 80px !important;
+      margin: 0 auto;
+    }
+
+    /* Hints "Clique aqui" do Node/Monitor — ao LADO com seta ◄, igual o do arcade */
+    .monitor-hint {
+      position: absolute !important;
+      top: 50% !important;
+      left: calc(100% + 4px) !important;
+      transform: translateY(-50%) !important;
+      margin-top: 0 !important;
+      font-size: 8px !important;
+      letter-spacing: 0.12em !important;
+      color: rgba(220, 255, 200, 1) !important;
+      text-shadow:
+        0 0 6px rgba(110, 216, 94, 0.9),
+        0 0 14px rgba(110, 216, 94, 0.55) !important;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    .monitor-hint::before {
+      content: '◄ ';
+      margin-right: 4px;
+      color: #6ed85e;
+      text-shadow:
+        0 0 6px rgba(110, 216, 94, 0.85),
+        0 0 12px rgba(110, 216, 94, 0.5);
+    }
+
+    /* Hint "Clique aqui" do botão Instalação — ao lado direito com seta ◄,
+       igual o do botão arcade. Em 375px viewport com botão 220px sobra ~77px,
+       cabe "CLIQUE AQUI" em fonte 8px com letter-spacing reduzido */
+    .install-button .click-hint-below,
+    .install-button .click-hint-above {
+      top: 50% !important;
+      bottom: auto !important;
+      left: calc(100% + 6px) !important;
+      transform: translateY(-50%) !important;
+      font-size: 8px !important;
+      letter-spacing: 0.15em !important;
+      gap: 4px !important;
+    }
+    .install-button .click-hint-below .arrow,
+    .install-button .click-hint-above .arrow {
+      font-size: 11px !important;
+    }
+
+    /* Step badges (01 PRIMEIRO, 02 DEPOIS) — centralizadas acima dos botões */
+    .node-logo-wrap, .monitor-wrap {
+      padding-top: 18px;
+    }
+    .step-badge {
+      top: 0 !important;
+      right: auto !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+    }
+
+    .arcade-button { width: 180px; height: 180px; }
+    .install-button { width: 260px; }
+    .install-button .word-glow { font-size: 36px; }
+    .aiox-arcade-button { width: 260px; }
+    .monitor-wrap { width: 160px; }
+    .node-logo-wrap { width: 100px; }
+    .tutorial-panel {
+      width: 95vw;
+      padding: 24px 24px;
+      gap: 16px;
+    }
+    .tutorial-image { max-height: 50vh; }
+    .success-marquee { height: 70px; }
+    /* Marquee fixed -> sticky em mobile pra não cobrir conteúdo durante scroll */
+    .success-marquee { position: sticky; bottom: 0; }
+
+    /* TV overlay (npm install -g claude-code) — comando vazava em mobile.
+       Quebra linha + reduz fonte + padding lateral menor. */
+    .tv-command, .aiox-cmd-overlay .tv-command {
+      font-size: clamp(11px, 3.4vw, 16px) !important;
+      white-space: normal !important;
+      word-break: break-all !important;
+      padding: 16px 18px !important;
+      max-width: 92vw;
+      line-height: 1.4;
+      text-align: center;
+    }
+    /* Actions: ficam em coluna pra não cortar nas bordas */
+    .tv-actions {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px !important;
+      padding: 0 12px;
+      max-width: 100vw;
+    }
+    .tv-btn {
+      min-height: 44px;
+      padding: 10px 14px !important;
+      font-size: 11px !important;
+    }
+    /* node-panel container respira nas bordas */
+    .node-panel {
+      width: 100%;
+      max-width: 100vw;
+      padding: 0 12px;
+      gap: 18px !important;
+    }
+    /* aiox-cmd-overlay + tv-overlay: padding lateral pra não colar nas bordas */
+    .aiox-cmd-overlay, .tv-overlay, .node-overlay {
+      padding: 16px !important;
+    }
+    .tv-screen { padding: 16px !important; }
+
+    /* Tutorial fullscreen — padding lateral mais respirável */
+    .tutorial-panel {
+      padding: 20px 16px !important;
+    }
+    .tutorial-title { padding: 0 8px; }
+    .tutorial-desc { padding: 0 8px; }
+    .step-indicator { padding: 0 16px; }
+    .nav-hint { padding: 0 16px; text-align: center; }
+    .tutorial-nav {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px !important;
+    }
+
+    /* "Clique no letreiro pra avançar" — em mobile fica acima do marquee
+       fixo, mas não pode cobrir o monitor CRT. Subimos pra cima do success-marquee
+       e reduzimos */
+    .marquee-click-hint {
+      bottom: calc(70px + 8px) !important;
+      font-size: 9px !important;
+      letter-spacing: 0.15em !important;
+      padding: 0 12px;
+      text-align: center;
+    }
+
+    /* Tela FINALE (Parabéns!) — texto desktop era 44px / 18px, vazava em mobile */
+    .tutorial-finale {
+      padding: 16px 8px !important;
+      gap: 14px !important;
+    }
+    .finale-pixel-icon { width: 72px !important; }
+    .finale-title {
+      font-size: 28px !important;
+      letter-spacing: 0.05em !important;
+      padding: 0 8px;
+    }
+    .finale-message {
+      font-size: 14px !important;
+      line-height: 1.45 !important;
+      padding: 0 8px;
+    }
+    .finale-tagline {
+      font-size: 9px !important;
+      letter-spacing: 0.18em !important;
+      padding: 0 8px;
+    }
+    .action-hint {
+      font-size: 10px !important;
+      padding: 0 8px;
+    }
+  }
+
+  /* Responsive — Mobile (largura padrão) */
+  @media (max-width: 640px) {
+    .arcade-button { width: 150px; height: 150px; }
+    .install-button { width: 220px; }
+    .install-button .word-glow { font-size: 30px; }
+    .aiox-arcade-button { width: 220px; }
+    .light-path-wrap { height: 60px !important; }
+    .monitor-wrap { width: 140px; }
+    .node-logo-wrap { width: 90px; }
+    /* Tutorial em mobile: full screen */
+    .tutorial-panel {
+      width: 100vw;
+      max-width: 100vw;
+      max-height: 100vh;
+      height: 100vh;
+      padding: 16px 12px;
+      border-radius: 0;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    .tutorial-image { max-height: 55vh; }
+    .tutorial-title { font-size: 18px !important; line-height: 1.25; }
+    .tutorial-desc { font-size: 13px !important; line-height: 1.4; }
+    /* Modals fullscreen (TV / Node / AIOX cmd) */
+    .tv-overlay, .node-overlay, .aiox-cmd-overlay { padding: 16px !important; }
+    .success-marquee { height: 60px; }
+    /* Botões de navegação mobile-friendly */
+    .tv-btn { min-height: 44px; padding: 10px 14px !important; }
+  }
+
+  /* Responsive — Mobile pequeno (iPhone SE etc.) */
+  @media (max-width: 380px) {
+    .arcade-button { width: 130px; height: 130px; }
+    .install-button { width: 200px; }
+    .install-button .word-glow { font-size: 26px; }
+    .aiox-arcade-button { width: 200px; }
+    .tutorial-image { max-height: 50vh; }
+    .tutorial-title { font-size: 16px !important; }
+    .tutorial-desc { font-size: 12px !important; }
+    .success-marquee { height: 52px; }
+  }
+
+  /* Mobile landscape — tela curta */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .arcade-button { width: 110px; height: 110px; }
+    .install-button { width: 180px; }
+    .light-path-wrap { height: 50px !important; }
+    .tutorial-panel {
+      max-height: 95vh;
+      padding: 12px 16px;
+    }
+    .tutorial-image { max-height: 60vh; }
   }
 </style>
 </head>
@@ -4202,7 +4528,10 @@
       return !!el.closest('button, .monitor-wrap, .node-logo-wrap, .tv-overlay, .node-overlay, .aiox-cmd-overlay, .aiox-tutorial-overlay, .success-marquee');
     }
 
-    document.addEventListener('mousedown', (e) => {
+    const isMobileViewport = () => window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+
+    document.addEventListener('pointerdown', (e) => {
+      if (isMobileViewport()) return;
       if (tvOverlay.classList.contains('active')) return;
       if (nodeOverlay.classList.contains('active')) return;
       if (aioxCmdOverlay.classList.contains('active')) return;
@@ -4213,7 +4542,7 @@
       startY = e.clientY - panY;
     });
 
-    document.addEventListener('mousemove', (e) => {
+    document.addEventListener('pointermove', (e) => {
       if (!mouseDownAt) return;
       if (!isDragging) {
         const dx = Math.abs(e.clientX - mouseDownAt.x);
@@ -4247,7 +4576,15 @@
       }, 700);
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('pointerup', () => {
+      mouseDownAt = null;
+      if (isDragging) {
+        isDragging = false;
+        document.body.classList.remove('dragging');
+      }
+    });
+
+    document.addEventListener('pointercancel', () => {
       mouseDownAt = null;
       if (isDragging) {
         isDragging = false;
