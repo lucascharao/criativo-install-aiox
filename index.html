@@ -578,6 +578,235 @@
   }
 
   /* ========================================
+     MIDDLE BRANCH (desce para o Git)
+     ======================================== */
+  .middle-branch-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    width: 180px;
+    height: calc(12vh - 8px);
+    min-height: 80px;
+    max-height: 180px;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .middle-branch-wrap.drawing { opacity: 1; }
+  .middle-branch-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .middle-branch-line {
+    fill: none;
+    stroke: #ff6b1a;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #ffaa66)
+      drop-shadow(0 0 8px #ff6b1a)
+      drop-shadow(0 0 20px rgba(255, 107, 26, 0.65))
+      drop-shadow(0 0 40px rgba(255, 107, 26, 0.3));
+  }
+  .middle-branch-wrap.drawing .middle-branch-line {
+    opacity: 1;
+    animation: drawMiddlePath 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+  @keyframes drawMiddlePath { to { stroke-dashoffset: 0; } }
+  .middle-branch-node {
+    fill: #ffaa66;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #ffaa66)
+      drop-shadow(0 0 12px rgba(255, 107, 26, 0.7));
+  }
+  .middle-branch-wrap.drawing .middle-branch-node {
+    animation: leftNodePop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s forwards;
+  }
+  .middle-branch-tip {
+    fill: #fff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #ffd8b8)
+      drop-shadow(0 0 10px #ffaa66)
+      drop-shadow(0 0 22px #ff6b1a);
+  }
+  .middle-branch-wrap.drawing .middle-branch-tip {
+    opacity: 1;
+    animation: leftTipFade 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+
+  /* ========================================
+     GIT LOGO (end of MIDDLE branch)
+     ======================================== */
+  .git-logo-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: -14px;
+    transform: translateX(-50%);
+    width: 90px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.4s ease, filter 0.4s ease;
+    z-index: 6;
+    pointer-events: none;
+    user-select: none;
+  }
+  .middle-branch-wrap.drawing .git-logo-wrap {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.6s ease 1.3s, transform 0.4s ease;
+  }
+  .git-logo-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter:
+      brightness(0.95) contrast(1.05)
+      drop-shadow(0 8px 18px rgba(0,0,0,0.7))
+      drop-shadow(0 0 12px rgba(255, 107, 26, 0.2));
+    transition: filter 0.4s ease, transform 0.25s ease;
+    pointer-events: none;
+  }
+  .git-logo-wrap:hover {
+    transform: translateX(-50%) translateY(-3px);
+  }
+  .git-logo-wrap.locked:hover {
+    transform: translateX(-50%);
+  }
+  .git-logo-wrap:hover img {
+    filter:
+      brightness(1.08) contrast(1.08)
+      drop-shadow(0 12px 24px rgba(0,0,0,0.7))
+      drop-shadow(0 0 22px rgba(255, 107, 26, 0.5));
+  }
+  /* Press feedback */
+  .git-logo-wrap.pressed img {
+    transform: translateY(4px) scale(0.96);
+    filter:
+      brightness(1.25) contrast(1.1) saturate(1.35)
+      drop-shadow(0 4px 10px rgba(0,0,0,0.6))
+      drop-shadow(0 0 24px rgba(255, 140, 60, 0.9))
+      drop-shadow(0 0 48px rgba(255, 107, 26, 0.65));
+  }
+  .git-logo-wrap.lit img {
+    filter:
+      brightness(1.18) contrast(1.1) saturate(1.25)
+      drop-shadow(0 8px 18px rgba(0,0,0,0.6))
+      drop-shadow(0 0 18px rgba(255, 140, 60, 0.85))
+      drop-shadow(0 0 40px rgba(255, 107, 26, 0.6))
+      drop-shadow(0 0 70px rgba(255, 107, 26, 0.35));
+  }
+  /* Locked state — antes do Node ser aberto */
+  .git-logo-wrap.locked {
+    cursor: not-allowed;
+  }
+  .git-logo-wrap.locked img {
+    filter:
+      brightness(0.35) grayscale(0.75)
+      drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+  }
+  .git-logo-wrap.locked:hover img {
+    filter:
+      brightness(0.35) grayscale(0.75)
+      drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+  }
+  .git-logo-wrap.locked .step-badge {
+    background: rgba(70, 70, 70, 0.75);
+    color: rgba(200, 200, 200, 0.55);
+    box-shadow: none;
+    animation: none;
+  }
+  .git-logo-wrap.locked .monitor-hint {
+    color: rgba(170, 170, 170, 0.55);
+    text-shadow: none;
+    animation: none;
+  }
+  /* Hint do Git fica ACIMA da logo, com folga para não cruzar o badge */
+  .git-logo-wrap .monitor-hint {
+    top: auto;
+    bottom: calc(100% + 22px);
+    left: 0;
+    right: 0;
+    transform: none;
+    margin: 0 auto;
+    width: max-content;
+    max-width: 90%;
+    color: rgba(255, 200, 150, 0.9);
+    text-shadow: 0 0 8px rgba(255, 107, 26, 0.6);
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    background: rgba(15, 6, 0, 0.7);
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 107, 26, 0.4);
+  }
+  /* Badge do Git em posição mais discreta para não competir com o hint */
+  .git-logo-wrap .step-badge {
+    top: -8px;
+    right: -6px;
+    font-size: 9px;
+    padding: 0 7px;
+    min-width: 32px;
+    height: 20px;
+    letter-spacing: 0.14em;
+  }
+  .git-logo-wrap.shake {
+    animation: shake-locked 0.45s ease;
+  }
+  /* Git badge (orange theme) */
+  .git-logo-wrap .step-badge {
+    background: rgba(255, 107, 26, 0.95);
+    color: #1a0a00;
+    box-shadow:
+      0 0 12px rgba(255, 107, 26, 0.7),
+      0 0 24px rgba(255, 107, 26, 0.4);
+    animation: badge-pulse-orange 2s ease-in-out infinite;
+  }
+  @keyframes badge-pulse-orange {
+    0%, 100% {
+      box-shadow:
+        0 0 12px rgba(255, 107, 26, 0.7),
+        0 0 24px rgba(255, 107, 26, 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow:
+        0 0 20px rgba(255, 170, 100, 1),
+        0 0 40px rgba(255, 107, 26, 0.65);
+      transform: scale(1.08);
+    }
+  }
+  .git-logo-wrap.unlocking img {
+    animation: unlock-pulse-orange 0.9s ease-out;
+  }
+  @keyframes unlock-pulse-orange {
+    0% {
+      filter:
+        brightness(0.35) grayscale(0.75)
+        drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+    }
+    40% {
+      filter:
+        brightness(1.4) saturate(1.3)
+        drop-shadow(0 10px 18px rgba(0,0,0,0.7))
+        drop-shadow(0 0 30px rgba(255, 107, 26, 0.85));
+    }
+    100% {
+      filter:
+        brightness(0.95) contrast(1.05)
+        drop-shadow(0 8px 18px rgba(0,0,0,0.7))
+        drop-shadow(0 0 12px rgba(255, 107, 26, 0.2));
+    }
+  }
+
+  /* ========================================
      NODE.JS LOGO (end of LEFT branch)
      ======================================== */
   .node-logo-wrap {
@@ -1098,6 +1327,104 @@
     box-shadow:
       0 0 40px rgba(110, 216, 94, 0.7),
       inset 0 0 24px rgba(180, 255, 180, 0.3);
+  }
+
+  /* PRIMARY (CONTINUAR) — destaca o próximo passo */
+  .tv-btn-primary {
+    background: rgba(110, 216, 94, 0.92);
+    border-color: #ffffff;
+    color: #001b00;
+    text-shadow: none;
+    font-weight: 700;
+    letter-spacing: 0.4em;
+    box-shadow:
+      0 0 24px rgba(110, 216, 94, 0.85),
+      0 0 48px rgba(110, 216, 94, 0.45),
+      inset 0 0 16px rgba(255, 255, 255, 0.18);
+    animation: btn-primary-pulse 1.8s ease-in-out infinite;
+  }
+  .tv-btn-primary::before,
+  .tv-btn-primary::after {
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  }
+  .tv-btn-primary:hover {
+    background: rgba(140, 240, 110, 1);
+    border-color: #ffffff;
+    color: #000000;
+    text-shadow: none;
+    box-shadow:
+      0 0 36px rgba(110, 216, 94, 1),
+      0 0 64px rgba(110, 216, 94, 0.6),
+      inset 0 0 22px rgba(255, 255, 255, 0.28);
+    letter-spacing: 0.45em;
+    transform: translateY(-1px);
+  }
+  .tv-btn-primary .icon {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  @keyframes btn-primary-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 24px rgba(110, 216, 94, 0.85),
+        0 0 48px rgba(110, 216, 94, 0.45),
+        inset 0 0 16px rgba(255, 255, 255, 0.18);
+    }
+    50% {
+      box-shadow:
+        0 0 34px rgba(110, 216, 94, 1),
+        0 0 70px rgba(110, 216, 94, 0.7),
+        inset 0 0 22px rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  /* PRIMARY na overlay AIOX (lime ao invés de verde) */
+  .aiox-cmd-overlay .tv-btn-primary {
+    background: rgba(212, 255, 0, 0.95);
+    border-color: #ffffff;
+    color: #0f1c00;
+    text-shadow: none;
+    box-shadow:
+      0 0 24px rgba(212, 255, 0, 0.85),
+      0 0 48px rgba(212, 255, 0, 0.45),
+      inset 0 0 16px rgba(255, 255, 255, 0.2);
+    animation: btn-primary-pulse-lime 1.8s ease-in-out infinite;
+  }
+  .aiox-cmd-overlay .tv-btn-primary:hover {
+    background: rgba(230, 255, 60, 1);
+    color: #000000;
+    border-color: #ffffff;
+    box-shadow:
+      0 0 36px rgba(212, 255, 0, 1),
+      0 0 64px rgba(212, 255, 0, 0.6),
+      inset 0 0 22px rgba(255, 255, 255, 0.3);
+  }
+  @keyframes btn-primary-pulse-lime {
+    0%, 100% {
+      box-shadow:
+        0 0 24px rgba(212, 255, 0, 0.85),
+        0 0 48px rgba(212, 255, 0, 0.45),
+        inset 0 0 16px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+      box-shadow:
+        0 0 34px rgba(212, 255, 0, 1),
+        0 0 70px rgba(212, 255, 0, 0.7),
+        inset 0 0 22px rgba(255, 255, 255, 0.32);
+    }
+  }
+
+  /* PRIMARY no tutorial (Próximo) */
+  .tutorial-nav .tv-btn-primary {
+    background: rgba(212, 255, 0, 0.95);
+    border-color: #ffffff;
+    color: #0f1c00;
+    text-shadow: none;
+    box-shadow:
+      0 0 22px rgba(212, 255, 0, 0.8),
+      inset 0 0 14px rgba(255, 255, 255, 0.2);
+    animation: btn-primary-pulse-lime 1.8s ease-in-out infinite;
   }
 
   /* ========================================
@@ -2726,8 +3053,118 @@
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
   }
 
-  .monitor-wrap.locked .lock-overlay {
+  .monitor-wrap.locked .lock-overlay,
+  .git-logo-wrap.locked .lock-overlay {
     opacity: 0.95;
+  }
+
+  /* GIT OVERLAY (orange theme variant of node-overlay) */
+  .git-overlay {
+    background:
+      radial-gradient(ellipse at center, rgba(140, 60, 20, 0.22) 0%, transparent 65%),
+      linear-gradient(135deg, #100805 0%, #000000 80%);
+  }
+  .git-overlay::before {
+    background-image:
+      linear-gradient(rgba(255, 107, 26, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 107, 26, 0.06) 1px, transparent 1px);
+  }
+  .git-overlay .node-title {
+    color: #ffd0aa;
+    text-shadow: 0 0 12px rgba(255, 107, 26, 0.6);
+  }
+  .git-overlay .node-title::after {
+    background: linear-gradient(90deg, transparent, rgba(255, 107, 26, 0.7), transparent);
+  }
+  .git-overlay .os-tab {
+    border-color: rgba(255, 140, 60, 0.55);
+    color: #ffd0aa;
+  }
+  .git-overlay .os-tab.active {
+    background: rgba(255, 107, 26, 0.3);
+    border-color: #ffaa66;
+    color: #ffffff;
+    box-shadow: 0 0 18px rgba(255, 107, 26, 0.55);
+  }
+  .git-overlay .cmd-prefix,
+  .git-overlay .cmd-text {
+    color: #ffd0aa;
+    text-shadow: 0 0 6px rgba(255, 107, 26, 0.6);
+  }
+  .git-overlay .cmd-cursor {
+    background: #ffaa66;
+    box-shadow: 0 0 8px rgba(255, 107, 26, 0.9);
+  }
+  .git-overlay .tv-command {
+    border-color: rgba(255, 107, 26, 0.45);
+    background: rgba(40, 18, 5, 0.55);
+  }
+  .git-overlay .tv-btn {
+    background: rgba(40, 18, 5, 0.55);
+    border-color: rgba(255, 140, 60, 0.55);
+    color: #ffe0c8;
+    text-shadow:
+      0 0 4px rgba(255, 180, 130, 0.75),
+      0 0 10px rgba(255, 107, 26, 0.5);
+    box-shadow:
+      0 0 18px rgba(255, 107, 26, 0.22),
+      inset 0 0 14px rgba(255, 107, 26, 0.08);
+  }
+  .git-overlay .tv-btn::before,
+  .git-overlay .tv-btn::after {
+    border-color: rgba(255, 180, 100, 0.9);
+    box-shadow: 0 0 6px rgba(255, 107, 26, 0.6);
+  }
+  .git-overlay .tv-btn:hover {
+    background: rgba(120, 50, 20, 0.32);
+    border-color: #ffaa66;
+    color: #ffffff;
+    box-shadow:
+      0 0 30px rgba(255, 107, 26, 0.55),
+      inset 0 0 22px rgba(255, 107, 26, 0.22);
+  }
+  .git-overlay .tv-btn.copied {
+    background: rgba(255, 140, 50, 0.4);
+    border-color: #ffe0c8;
+    color: #ffffff;
+    box-shadow:
+      0 0 40px rgba(255, 107, 26, 0.7),
+      inset 0 0 24px rgba(255, 200, 140, 0.3);
+  }
+  /* Primary button (CONTINUAR) — orange variant */
+  .git-overlay .tv-btn-primary {
+    background: rgba(255, 130, 50, 0.95);
+    border-color: #ffffff;
+    color: #1a0700;
+    text-shadow: none;
+    box-shadow:
+      0 0 24px rgba(255, 107, 26, 0.85),
+      0 0 48px rgba(255, 107, 26, 0.45),
+      inset 0 0 16px rgba(255, 255, 255, 0.2);
+    animation: btn-primary-pulse-orange 1.8s ease-in-out infinite;
+  }
+  .git-overlay .tv-btn-primary:hover {
+    background: rgba(255, 160, 80, 1);
+    color: #000000;
+    border-color: #ffffff;
+    box-shadow:
+      0 0 36px rgba(255, 107, 26, 1),
+      0 0 64px rgba(255, 107, 26, 0.6),
+      inset 0 0 22px rgba(255, 255, 255, 0.3);
+  }
+  @keyframes btn-primary-pulse-orange {
+    0%, 100% {
+      box-shadow:
+        0 0 24px rgba(255, 107, 26, 0.85),
+        0 0 48px rgba(255, 107, 26, 0.45),
+        inset 0 0 16px rgba(255, 255, 255, 0.2);
+    }
+    50% {
+      box-shadow:
+        0 0 34px rgba(255, 107, 26, 1),
+        0 0 70px rgba(255, 107, 26, 0.7),
+        inset 0 0 22px rgba(255, 255, 255, 0.32);
+    }
   }
 
   .lock-overlay svg {
@@ -2797,6 +3234,56 @@
   .hint-active > .click-hint-above,
   .hint-active > .click-hint-below {
     opacity: 1;
+  }
+
+  /* ========================================
+     NEXT-STEP GLOW (indica próximo botão a clicar no fluxo)
+     ======================================== */
+  .node-logo-wrap.next-step img,
+  .monitor-wrap.next-step img {
+    animation: next-step-pulse-green 1.6s ease-in-out infinite;
+  }
+  .git-logo-wrap.next-step img {
+    animation: next-step-pulse-orange 1.6s ease-in-out infinite;
+  }
+  @keyframes next-step-pulse-green {
+    0%, 100% {
+      filter:
+        brightness(1.05) contrast(1.05)
+        drop-shadow(0 8px 18px rgba(0,0,0,0.6))
+        drop-shadow(0 0 16px rgba(110, 216, 94, 0.7))
+        drop-shadow(0 0 32px rgba(110, 216, 94, 0.45));
+    }
+    50% {
+      filter:
+        brightness(1.18) contrast(1.08) saturate(1.2)
+        drop-shadow(0 8px 18px rgba(0,0,0,0.6))
+        drop-shadow(0 0 22px rgba(150, 240, 130, 1))
+        drop-shadow(0 0 50px rgba(110, 216, 94, 0.65));
+    }
+  }
+  @keyframes next-step-pulse-orange {
+    0%, 100% {
+      filter:
+        brightness(1.05) contrast(1.05)
+        drop-shadow(0 8px 18px rgba(0,0,0,0.6))
+        drop-shadow(0 0 16px rgba(255, 140, 60, 0.7))
+        drop-shadow(0 0 32px rgba(255, 107, 26, 0.45));
+    }
+    50% {
+      filter:
+        brightness(1.18) contrast(1.08) saturate(1.2)
+        drop-shadow(0 8px 18px rgba(0,0,0,0.6))
+        drop-shadow(0 0 22px rgba(255, 170, 100, 1))
+        drop-shadow(0 0 50px rgba(255, 107, 26, 0.65));
+    }
+  }
+  /* Reforço no monitor-hint do próximo passo */
+  .node-logo-wrap.next-step .monitor-hint,
+  .git-logo-wrap.next-step .monitor-hint,
+  .monitor-wrap.next-step .monitor-hint {
+    animation: hint-blink 0.9s ease-in-out infinite;
+    color: #ffffff;
   }
 
   .click-hint-above .arrow,
@@ -2983,12 +3470,158 @@
 
   /* Responsive */
   @media (max-width: 640px) {
-    .arcade-button { width: 160px; height: 160px; }
-    .install-button { width: 240px; }
+    .arcade-button { width: 150px; height: 150px; }
+    .install-button { width: 220px; }
     .light-path-wrap {
-      top: calc(11vh + 170px);
-      bottom: calc(12vh + 160px);
+      top: calc(11vh + 160px);
+      bottom: calc(12vh + 150px);
     }
+    /* Middle branch + Git logo mobile */
+    .middle-branch-wrap {
+      width: 140px;
+      max-height: 120px;
+      min-height: 60px;
+      bottom: 6px;
+    }
+    .git-logo-wrap {
+      width: 64px;
+      bottom: -6px;
+    }
+    .git-logo-wrap .step-badge {
+      font-size: 8px;
+      padding: 0 6px;
+      min-width: 24px;
+      height: 18px;
+      top: -8px;
+      right: -8px;
+      letter-spacing: 0.14em;
+    }
+    .git-logo-wrap .monitor-hint {
+      font-size: 8px;
+      letter-spacing: 0.22em;
+      padding: 3px 6px;
+      bottom: calc(100% + 28px);
+    }
+    /* Node logo mobile — diminui também */
+    .node-logo-wrap {
+      width: 120px;
+    }
+    .node-logo-wrap .step-badge,
+    .monitor-wrap .step-badge {
+      font-size: 9px;
+      padding: 0 7px;
+      min-width: 30px;
+      height: 22px;
+    }
+    /* Monitor mobile menor */
+    .monitor-wrap {
+      width: 130px;
+    }
+    /* Branches mais curtas em mobile */
+    .left-branch-wrap,
+    .right-branch-wrap {
+      width: 220px;
+      height: 160px;
+    }
+    .left-branch-wrap { right: calc(50% + 100px); }
+    .right-branch-wrap { left: calc(50% + 100px); }
+
+    /* Botões TV/Node/AIOX — empilhar e dar respiro */
+    .tv-actions {
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .tv-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 14px 18px;
+      font-size: 12px;
+      letter-spacing: 0.28em;
+    }
+    .tv-btn:hover { letter-spacing: 0.3em; }
+    .tv-btn-primary { order: -1; }
+
+    /* TV overlay screen padding em mobile */
+    .tv-screen {
+      width: 92vw;
+      padding: 24px 18px;
+    }
+    .tv-command {
+      font-size: 13px;
+      word-break: break-all;
+      white-space: normal;
+    }
+    .tv-hint {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      padding: 0 14px;
+      text-align: center;
+    }
+
+    /* Node panel mobile */
+    .node-panel {
+      gap: 20px;
+      padding: 0 16px;
+      width: 100%;
+    }
+    .node-title { font-size: 16px; letter-spacing: 0.3em; }
+    .os-tabs { gap: 6px; }
+    .os-tab { font-size: 10px; padding: 8px 12px; letter-spacing: 0.2em; }
+
+    /* AIOX cmd overlay mobile */
+    .aiox-cmd-overlay .node-panel { padding: 0 16px; }
+
+    /* Tutorial mobile */
+    .aiox-tutorial-overlay { padding: 16px 12px; }
+    .tutorial-panel {
+      width: 100%;
+      max-height: 94vh;
+      padding: 22px 18px;
+      gap: 14px;
+      overflow-y: auto;
+    }
+    .tutorial-title { font-size: 18px; line-height: 1.25; }
+    .tutorial-desc { font-size: 13px; line-height: 1.5; }
+    .tutorial-image-wrap { max-width: 100%; }
+    .tutorial-nav {
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .tutorial-nav .tv-btn { width: 100%; justify-content: center; }
+    .tutorial-nav .tv-btn-primary { order: -1; }
+    .step-indicator { font-size: 11px; letter-spacing: 0.2em; }
+    .keyboard-hint { display: none; }
+
+    /* Marquee e hints menores */
+    .marquee-text { font-size: 14px; }
+    .marquee-logo { width: 22px; height: 22px; }
+
+    /* Reset-view button menor */
+    .reset-view-btn { font-size: 10px; padding: 8px 12px; }
+
+    /* Action hints com seta */
+    .action-hint .action-text { font-size: 12px; }
+  }
+
+  /* Tela bem pequena (iPhone SE etc.) */
+  @media (max-width: 380px) {
+    .arcade-button { width: 130px; height: 130px; }
+    .install-button { width: 200px; }
+    .tv-btn { font-size: 11px; padding: 12px 14px; letter-spacing: 0.22em; }
+    .tutorial-title { font-size: 16px; }
+    .node-logo-wrap { width: 100px; }
+    .monitor-wrap { width: 110px; }
+    .git-logo-wrap { width: 56px; bottom: -4px; }
+    .git-logo-wrap .monitor-hint { font-size: 7px; padding: 2px 5px; }
+    .left-branch-wrap,
+    .right-branch-wrap { width: 180px; height: 130px; }
+    .left-branch-wrap { right: calc(50% + 80px); }
+    .right-branch-wrap { left: calc(50% + 80px); }
+    .middle-branch-wrap { width: 110px; max-height: 90px; }
+    .tutorial-desc { font-size: 12px; }
   }
 </style>
 </head>
@@ -3081,7 +3714,7 @@
         </circle>
       </svg>
 
-      <!-- CRT MONITOR at end of right branch (STEP 2 — locked initially) -->
+      <!-- CRT MONITOR at end of right branch (STEP 3 — locked initially) -->
       <div class="monitor-wrap locked" id="monitorWrap">
         <img src="Pc_install.png" alt="Instalar">
         <div class="lock-overlay">
@@ -3092,8 +3725,42 @@
             <rect x="0" y="4" width="7" height="5"/>
           </svg>
         </div>
+        <div class="step-badge">03 ▸ ÚLTIMO</div>
+        <div class="monitor-hint" id="monitorHint">ABRA O GIT</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE BRANCH (vertical, opens to Git) -->
+    <div class="middle-branch-wrap" id="middleBranch">
+      <svg class="middle-branch-svg" viewBox="0 0 6 200" preserveAspectRatio="none">
+        <path
+          class="middle-branch-line"
+          d="M 3 0 L 3 200"
+          vector-effect="non-scaling-stroke"/>
+        <circle class="middle-branch-node" cx="3" cy="198" r="3" vector-effect="non-scaling-stroke"/>
+        <circle class="middle-branch-tip" cx="3" cy="0" r="2.5" vector-effect="non-scaling-stroke">
+          <animateMotion
+            dur="1.4s"
+            fill="freeze"
+            begin="indefinite"
+            id="middleTipAnim"
+            path="M 0 0 L 0 198"/>
+        </circle>
+      </svg>
+
+      <!-- Git logo at end of MIDDLE branch (STEP 2 — locked initially) -->
+      <div class="git-logo-wrap locked" id="gitLogoWrap">
+        <img src="git-logo.png" alt="Git">
+        <div class="lock-overlay">
+          <svg viewBox="0 0 7 9" aria-hidden="true">
+            <rect x="2" y="0" width="3" height="1"/>
+            <rect x="1" y="1" width="1" height="3"/>
+            <rect x="5" y="1" width="1" height="3"/>
+            <rect x="0" y="4" width="7" height="5"/>
+          </svg>
+        </div>
         <div class="step-badge">02 ▸ DEPOIS</div>
-        <div class="monitor-hint" id="monitorHint">ABRA NODE.JS</div>
+        <div class="monitor-hint" id="gitHint">ABRA NODE.JS</div>
       </div>
     </div>
 
@@ -3191,7 +3858,7 @@
           <span class="icon">⎘</span>
           <span class="label">COPIAR</span>
         </button>
-        <button class="tv-btn" id="aioxStepsBtn" type="button">
+        <button class="tv-btn tv-btn-primary" id="aioxStepsBtn" type="button">
           <span class="icon">→</span>
           <span class="label">CONTINUAR</span>
         </button>
@@ -3263,7 +3930,7 @@
             <span class="icon">←</span>
             <span class="label">ANTERIOR</span>
           </button>
-          <button class="tv-btn" id="tutorialNext" type="button">
+          <button class="tv-btn tv-btn-primary" id="tutorialNext" type="button">
             <span class="icon">→</span>
             <span class="label">PRÓXIMO</span>
           </button>
@@ -3347,9 +4014,9 @@
           <span class="icon">⎘</span>
           <span class="label">COPIAR</span>
         </button>
-        <button class="tv-btn" id="backBtn" type="button">
-          <span class="icon">←</span>
-          <span class="label">VOLTAR</span>
+        <button class="tv-btn tv-btn-primary" id="backBtn" type="button">
+          <span class="icon">→</span>
+          <span class="label">CONTINUAR</span>
         </button>
         <button class="tv-btn" id="homeBtn" type="button">
           <span class="icon">⌂</span>
@@ -3443,11 +4110,40 @@
           <span class="icon">⎘</span>
           <span class="label">COPIAR</span>
         </button>
-        <button class="tv-btn" id="nodeBackBtn" type="button">
-          <span class="icon">←</span>
-          <span class="label">VOLTAR</span>
+        <button class="tv-btn tv-btn-primary" id="nodeBackBtn" type="button">
+          <span class="icon">→</span>
+          <span class="label">CONTINUAR</span>
         </button>
         <button class="tv-btn" id="nodeHomeBtn" type="button">
+          <span class="icon">⌂</span>
+          <span class="label">INÍCIO</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GIT INSTALL OVERLAY -->
+  <div class="node-overlay git-overlay" id="gitOverlay">
+    <div class="node-panel">
+      <div class="node-title">Instalar Git</div>
+      <div class="os-tabs">
+        <button class="os-tab active" data-os="mac" type="button">MAC</button>
+        <button class="os-tab" data-os="windows" type="button">WINDOWS</button>
+        <button class="os-tab" data-os="linux" type="button">LINUX</button>
+      </div>
+      <div class="tv-command">
+        <span class="cmd-prefix">$</span><span class="cmd-text" id="gitCmdText"></span><span class="cmd-cursor"></span>
+      </div>
+      <div class="tv-actions">
+        <button class="tv-btn" id="gitCopyBtn" type="button">
+          <span class="icon">⎘</span>
+          <span class="label">COPIAR</span>
+        </button>
+        <button class="tv-btn tv-btn-primary" id="gitContinueBtn" type="button">
+          <span class="icon">→</span>
+          <span class="label">CONTINUAR</span>
+        </button>
+        <button class="tv-btn" id="gitHomeBtn" type="button">
           <span class="icon">⌂</span>
           <span class="label">INÍCIO</span>
         </button>
@@ -3476,10 +4172,30 @@
     const nodeCopyBtn = document.getElementById('nodeCopyBtn');
     const nodeBackBtn = document.getElementById('nodeBackBtn');
     const nodeHomeBtn = document.getElementById('nodeHomeBtn');
-    const osTabs = document.querySelectorAll('.os-tab');
+    const osTabs = document.querySelectorAll('#nodeOverlay .os-tab');
     const tipAnim = document.getElementById('tipAnim');
     const leftTipAnim = document.getElementById('leftTipAnim');
     const rightTipAnim = document.getElementById('rightTipAnim');
+
+    // GIT refs
+    const middleBranch = document.getElementById('middleBranch');
+    const middleTipAnim = document.getElementById('middleTipAnim');
+    const gitLogoWrap = document.getElementById('gitLogoWrap');
+    const gitOverlay = document.getElementById('gitOverlay');
+    const gitCmdText = document.getElementById('gitCmdText');
+    const gitCopyBtn = document.getElementById('gitCopyBtn');
+    const gitContinueBtn = document.getElementById('gitContinueBtn');
+    const gitHomeBtn = document.getElementById('gitHomeBtn');
+    const gitHint = document.getElementById('gitHint');
+    const gitOsTabs = document.querySelectorAll('#gitOverlay .os-tab');
+    const GIT_CMDS = {
+      mac: 'brew install git',
+      windows: 'winget install --id Git.Git -e --source winget',
+      linux: 'sudo apt install git'
+    };
+    let currentGitOS = 'mac';
+    let hasOpenedGit = false;
+    let gitTypingTimer = null;
 
     const INSTALL_CMD = 'npm install -g @anthropic-ai/claude-code';
     const NODE_CMDS = {
@@ -3711,9 +4427,15 @@
 
     function lockMonitor() {
       hasOpenedNode = false;
+      hasOpenedGit = false;
+      // Git locked até abrir Node
+      gitLogoWrap.classList.add('locked');
+      gitLogoWrap.classList.remove('unlocking', 'lit', 'pressed');
+      if (gitHint) gitHint.textContent = 'ABRA NODE.JS';
+      // Monitor locked até abrir Git
       monitorWrap.classList.add('locked');
       monitorWrap.classList.remove('unlocking');
-      if (monitorHint) monitorHint.textContent = 'ABRA NODE.JS';
+      if (monitorHint) monitorHint.textContent = 'ABRA O GIT';
     }
 
     installButton.addEventListener('click', (e) => {
@@ -3722,7 +4444,11 @@
         installButton.classList.remove('lit');
         leftBranch.classList.remove('drawing');
         rightBranch.classList.remove('drawing');
+        middleBranch.classList.remove('drawing');
         lockMonitor();
+        nodeLogoWrap.classList.remove('next-step', 'lit');
+        gitLogoWrap.classList.remove('next-step');
+        monitorWrap.classList.remove('next-step');
         // Revert sequence
         installButton.classList.add('hint-active');
       } else {
@@ -3730,15 +4456,23 @@
         setTimeout(() => installButton.classList.remove('just-lit'), 700);
         leftBranch.classList.remove('drawing');
         rightBranch.classList.remove('drawing');
+        middleBranch.classList.remove('drawing');
         void leftBranch.offsetWidth;
         void rightBranch.offsetWidth;
+        void middleBranch.offsetWidth;
         leftBranch.classList.add('drawing');
         rightBranch.classList.add('drawing');
+        middleBranch.classList.add('drawing');
         try { leftTipAnim.beginElement(); } catch (e) {}
         try { rightTipAnim.beginElement(); } catch (e) {}
+        try { middleTipAnim.beginElement(); } catch (e) {}
         lockMonitor();
-        // Sequence done — next hints (Node/Monitor) are in branches
+        // Sequence done — Node é o primeiro passo, marca como next-step
         installButton.classList.remove('hint-active');
+        nodeLogoWrap.classList.remove('next-step', 'lit');
+        gitLogoWrap.classList.remove('next-step');
+        monitorWrap.classList.remove('next-step');
+        setTimeout(() => nodeLogoWrap.classList.add('next-step'), 1400);
       }
     });
 
@@ -3803,7 +4537,7 @@
 
     monitorWrap.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Locked — must open Node.js first
+      // Locked — must open Git first
       if (monitorWrap.classList.contains('locked')) {
         monitorWrap.classList.remove('shake');
         void monitorWrap.offsetWidth;
@@ -3811,6 +4545,7 @@
         setTimeout(() => monitorWrap.classList.remove('shake'), 500);
         return;
       }
+      monitorWrap.classList.remove('next-step');
       if (stage === 0) {
         stage = 1;
         tvOverlay.classList.add('active');
@@ -4048,6 +4783,9 @@
 
     backBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // CONTINUAR — só fecha o overlay; o letreiro de sucesso aparece
+      // sozinho via closeTvOverlay() quando claudeCodeSeen=true
+      monitorWrap.classList.remove('next-step');
       closeTvOverlay();
     });
 
@@ -4083,21 +4821,13 @@
 
     nodeLogoWrap.addEventListener('click', (e) => {
       e.stopPropagation();
+      nodeLogoWrap.classList.remove('next-step');
       nodeLogoWrap.classList.add('lit');
       nodeOverlay.classList.add('active');
       // Reset to mac tab default
       currentOS = 'mac';
       osTabs.forEach(t => t.classList.toggle('active', t.dataset.os === 'mac'));
       setTimeout(() => typeNodeCommand(NODE_CMDS.mac), 700);
-
-      // UNLOCK monitor (only first time)
-      if (!hasOpenedNode) {
-        hasOpenedNode = true;
-        monitorWrap.classList.remove('locked');
-        monitorWrap.classList.add('unlocking');
-        if (monitorHint) monitorHint.textContent = 'Clique aqui';
-        setTimeout(() => monitorWrap.classList.remove('unlocking'), 900);
-      }
     });
 
     osTabs.forEach(tab => {
@@ -4126,7 +4856,116 @@
 
     nodeBackBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // CONTINUAR — só fecha o Node e destaca o próximo passo (Git)
       closeNodeOverlay();
+      hasOpenedNode = true;
+      if (gitLogoWrap.classList.contains('locked')) {
+        gitLogoWrap.classList.remove('locked');
+        gitLogoWrap.classList.add('unlocking');
+        if (gitHint) gitHint.textContent = 'Clique aqui';
+        setTimeout(() => gitLogoWrap.classList.remove('unlocking'), 900);
+      }
+      // Tira destaque do Node, dá destaque para o Git
+      nodeLogoWrap.classList.remove('next-step');
+      gitLogoWrap.classList.add('next-step');
+    });
+
+    /* ========================================
+       GIT INSTALL OVERLAY
+       ======================================== */
+    function typeGitCommand(text) {
+      if (gitTypingTimer) clearTimeout(gitTypingTimer);
+      gitCmdText.textContent = '';
+      let i = 0;
+      function next() {
+        if (i < text.length) {
+          gitCmdText.textContent += text[i];
+          i++;
+          gitTypingTimer = setTimeout(next, 35 + Math.random() * 55);
+        }
+      }
+      next();
+    }
+
+    function clearGitTyping() {
+      if (gitTypingTimer) { clearTimeout(gitTypingTimer); gitTypingTimer = null; }
+      gitCmdText.textContent = '';
+    }
+
+    function closeGitOverlay() {
+      gitOverlay.classList.remove('active');
+      gitLogoWrap.classList.remove('lit');
+      clearGitTyping();
+    }
+
+    function openGitOverlay() {
+      gitLogoWrap.classList.remove('next-step');
+      gitLogoWrap.classList.add('lit');
+      // Pulso de "pressionado" pra dar feedback visual antes do overlay aparecer
+      gitLogoWrap.classList.add('pressed');
+      setTimeout(() => gitLogoWrap.classList.remove('pressed'), 350);
+      gitOverlay.classList.add('active');
+      currentGitOS = 'mac';
+      gitOsTabs.forEach(t => t.classList.toggle('active', t.dataset.os === 'mac'));
+      setTimeout(() => typeGitCommand(GIT_CMDS.mac), 700);
+    }
+
+    gitLogoWrap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Locked — precisa abrir Node antes
+      if (gitLogoWrap.classList.contains('locked')) {
+        gitLogoWrap.classList.remove('shake');
+        void gitLogoWrap.offsetWidth;
+        gitLogoWrap.classList.add('shake');
+        setTimeout(() => gitLogoWrap.classList.remove('shake'), 500);
+        return;
+      }
+      openGitOverlay();
+    });
+
+    gitOsTabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (tab.classList.contains('active')) return;
+        gitOsTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentGitOS = tab.dataset.os;
+        typeGitCommand(GIT_CMDS[currentGitOS]);
+      });
+    });
+
+    gitCopyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyToClipboard(GIT_CMDS[currentGitOS]);
+      gitCopyBtn.classList.add('copied');
+      gitCopyBtn.querySelector('.icon').textContent = '✓';
+      gitCopyBtn.querySelector('.label').textContent = 'COPIADO';
+      setTimeout(() => {
+        gitCopyBtn.classList.remove('copied');
+        gitCopyBtn.querySelector('.icon').textContent = '⎘';
+        gitCopyBtn.querySelector('.label').textContent = 'COPIAR';
+      }, 2000);
+    });
+
+    gitContinueBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // CONTINUAR — só fecha o Git e destaca o próximo passo (Claude Code)
+      closeGitOverlay();
+      hasOpenedGit = true;
+      if (monitorWrap.classList.contains('locked')) {
+        monitorWrap.classList.remove('locked');
+        monitorWrap.classList.add('unlocking');
+        if (monitorHint) monitorHint.textContent = 'Clique aqui';
+        setTimeout(() => monitorWrap.classList.remove('unlocking'), 900);
+      }
+      // Tira destaque do Git, dá destaque para o Monitor
+      gitLogoWrap.classList.remove('next-step');
+      monitorWrap.classList.add('next-step');
+    });
+
+    gitHomeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fullReset();
     });
 
     /* ========================================
@@ -4134,19 +4973,21 @@
        Reset everything to the very initial state
        ======================================== */
     function fullReset() {
-      // Close both overlays
+      // Close overlays
       closeTvOverlay();
       closeNodeOverlay();
+      closeGitOverlay();
 
-      // Reset install button + both branches
+      // Reset install button + branches (left/middle/right)
       installButton.classList.remove('lit', 'just-lit');
       leftBranch.classList.remove('drawing');
       rightBranch.classList.remove('drawing');
+      middleBranch.classList.remove('drawing');
 
       // Reset Claude Code main button
       if (isOn) turnOff();
 
-      // Re-lock monitor (must reopen Node first)
+      // Re-lock Git + monitor (must reopen Node first)
       lockMonitor();
 
       // Hide success marquee + reset mode + seen flag + click-hint
@@ -4176,6 +5017,9 @@
 
       // Reset hint sequence: only mainButton hint visible again
       document.querySelectorAll('.hint-active').forEach(el => el.classList.remove('hint-active'));
+      document.querySelectorAll('.next-step').forEach(el => el.classList.remove('next-step'));
+      nodeLogoWrap.classList.remove('lit');
+      gitLogoWrap.classList.remove('lit', 'pressed');
       button.classList.add('hint-active');
     }
 
@@ -4199,12 +5043,13 @@
     const DRAG_THRESHOLD = 5;
 
     function isInteractive(el) {
-      return !!el.closest('button, .monitor-wrap, .node-logo-wrap, .tv-overlay, .node-overlay, .aiox-cmd-overlay, .aiox-tutorial-overlay, .success-marquee');
+      return !!el.closest('button, .monitor-wrap, .node-logo-wrap, .git-logo-wrap, .tv-overlay, .node-overlay, .git-overlay, .aiox-cmd-overlay, .aiox-tutorial-overlay, .success-marquee');
     }
 
     document.addEventListener('mousedown', (e) => {
       if (tvOverlay.classList.contains('active')) return;
       if (nodeOverlay.classList.contains('active')) return;
+      if (gitOverlay.classList.contains('active')) return;
       if (aioxCmdOverlay.classList.contains('active')) return;
       if (aioxTutorial.classList.contains('active')) return;
       if (isInteractive(e.target)) return;
@@ -4270,6 +5115,8 @@
         closeTutorial();
       } else if (aioxCmdOverlay.classList.contains('active')) {
         closeAioxCmdOverlay();
+      } else if (gitOverlay.classList.contains('active')) {
+        closeGitOverlay();
       } else if (nodeOverlay.classList.contains('active')) {
         closeNodeOverlay();
       } else if (tvOverlay.classList.contains('active')) {
