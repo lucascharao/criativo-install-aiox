@@ -3621,11 +3621,11 @@
       top: calc(11vh + 160px);
       bottom: calc(12vh + 150px);
     }
-    /* Cena AIOX (mobile) — tudo cabe na viewport visivel */
+    /* Cena AIOX (mobile) — logo + path curto + install, tudo no topo */
     .aiox-scene {
-      padding: 3vh 0 3vh;
+      padding: 4vh 0;
       justify-content: flex-start;
-      gap: 0;
+      gap: 140px;
       height: 100dvh;
       min-height: 0;
       align-items: center;
@@ -3634,18 +3634,16 @@
     .aiox-arcade-img { max-height: 150px; object-fit: contain; }
     .aiox-scene .install-button {
       width: 200px;
-      position: absolute;
-      bottom: 3vh;
-      left: 50%;
-      transform: translateX(-50%);
+      position: static;
+      transform: none;
       margin: 0;
     }
-    /* Path curto entre arcade e install (altura fixa) */
+    /* Path curto entre arcade e install (preenche o gap) */
     .aiox-path-wrap {
-      top: calc(3vh + 150px + 8px);
+      top: calc(4vh + 150px + 6px);
       bottom: auto;
-      height: calc(100dvh - 3vh - 150px - 8px - 3vh - 90px - 8px);
-      max-height: 220px;
+      height: 128px;
+      max-height: 128px;
     }
 
     /* Cadeia vertical (mobile) */
