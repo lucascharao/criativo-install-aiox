@@ -1373,8 +1373,9 @@
     border-radius: 8px;
     text-shadow: none;
     text-transform: uppercase;
-    z-index: 6;
-    pointer-events: none;
+    z-index: 7;
+    cursor: pointer;
+    pointer-events: auto;
     white-space: nowrap;
     box-shadow:
       0 0 24px rgba(110, 216, 94, 0.85),
@@ -1382,6 +1383,9 @@
       inset 0 0 16px rgba(255, 255, 255, 0.18);
     animation: tv-hint-pulse 1.6s ease-in-out infinite;
     transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+  }
+  .tv-hint:active {
+    transform: translate(-50%, -50%) scale(0.96);
   }
   @keyframes tv-hint-pulse {
     0%, 100% {
@@ -4742,18 +4746,28 @@
         tvOverlay.classList.add('active');
         startStatic();
         tvHint.textContent = 'CLIQUE PARA CONTINUAR';
+        tvHint.style.display = '';
       }
     });
 
+    function advanceTvStage() {
+      if (stage !== 1) return;
+      stage = 2;
+      tvOverlay.classList.add('tuned');
+      tvHint.style.display = 'none';
+      tvHint.textContent = 'USE OS BOTÕES';
+      setTimeout(() => typeCommand(INSTALL_CMD), 600);
+      claudeCodeSeen = true;
+    }
+
     tvOverlay.addEventListener('click', () => {
-      if (stage === 1) {
-        stage = 2;
-        tvOverlay.classList.add('tuned');
-        tvHint.textContent = 'USE OS BOTÕES';
-        setTimeout(() => typeCommand(INSTALL_CMD), 600);
-        claudeCodeSeen = true; // Mark as seen for marquee trigger
-      }
+      advanceTvStage();
       // Stage 2 stays — user must click VOLTAR or COPIAR
+    });
+
+    tvHint.addEventListener('click', (e) => {
+      e.stopPropagation();
+      advanceTvStage();
     });
 
     /* ---- Copy command ---- */
@@ -4789,6 +4803,7 @@
       stage = 0;
       tvOverlay.classList.remove('active', 'tuned');
       tvHint.textContent = 'CLIQUE PARA CONTINUAR';
+      tvHint.style.display = '';
       clearTyping();
       setTimeout(stopStatic, 500);
 
