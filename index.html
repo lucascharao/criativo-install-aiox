@@ -807,6 +807,144 @@
   }
 
   /* ========================================
+     VERTICAL CHAIN — Node → Git → Claude Code
+     ======================================== */
+  .vchain-wrap {
+    position: absolute;
+    left: 50%;
+    bottom: 12vh;
+    transform: translate(-50%, calc(100% + 24px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    z-index: 3;
+    pointer-events: none;
+    width: 240px;
+  }
+  .vchain-wrap > .vchain-node { pointer-events: auto; }
+
+  /* Paths verticais entre os nós */
+  .vchain-path {
+    width: 6px;
+    height: 0;
+    overflow: visible;
+    opacity: 0;
+    transition: height 0.5s ease, opacity 0.4s ease;
+    flex-shrink: 0;
+  }
+  .vchain-path.drawing {
+    opacity: 1;
+    height: 150px;
+  }
+  .vchain-line {
+    fill: none;
+    stroke: #6ed85e;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 180;
+    stroke-dashoffset: 180;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 3px #a8f298)
+      drop-shadow(0 0 8px #6ed85e)
+      drop-shadow(0 0 20px rgba(110, 216, 94, 0.55))
+      drop-shadow(0 0 40px rgba(110, 216, 94, 0.25));
+  }
+  .vchain-path.drawing .vchain-line {
+    opacity: 1;
+    animation: vchain-draw 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+  @keyframes vchain-draw { to { stroke-dashoffset: 0; } }
+  .vchain-tip {
+    fill: #fff;
+    opacity: 0;
+    filter:
+      drop-shadow(0 0 4px #d8ffc8)
+      drop-shadow(0 0 10px #8aee78)
+      drop-shadow(0 0 22px #6ed85e);
+  }
+  .vchain-path.drawing .vchain-tip {
+    opacity: 1;
+    animation: vchain-tip-fade 1.4s cubic-bezier(0.55, 0, 0.25, 1) forwards;
+  }
+  @keyframes vchain-tip-fade {
+    0%   { opacity: 1; }
+    85%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  /* Variant laranja (Git path) */
+  .vchain-path-orange .vchain-line {
+    stroke: #ff6b1a;
+    filter:
+      drop-shadow(0 0 3px #ffaa66)
+      drop-shadow(0 0 8px #ff6b1a)
+      drop-shadow(0 0 20px rgba(255, 107, 26, 0.55))
+      drop-shadow(0 0 40px rgba(255, 107, 26, 0.25));
+  }
+  .vchain-path-orange .vchain-tip {
+    filter:
+      drop-shadow(0 0 4px #ffd8b8)
+      drop-shadow(0 0 10px #ffaa66)
+      drop-shadow(0 0 22px #ff6b1a);
+  }
+
+  /* Override posicionamento absoluto dos logos quando dentro do vchain */
+  .vchain-wrap .vchain-node {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0s linear 0.5s, transform 0.4s ease;
+    pointer-events: none;
+  }
+  .vchain-wrap .vchain-node.revealed {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.6s ease 0.4s, visibility 0s linear 0.4s, transform 0.4s ease;
+  }
+  /* Hover restaurado para os 3 logos */
+  .vchain-wrap .node-logo-wrap:hover,
+  .vchain-wrap .git-logo-wrap:hover,
+  .vchain-wrap .monitor-wrap:hover {
+    transform: translateY(-3px) !important;
+  }
+  .vchain-wrap .node-logo-wrap.locked:hover,
+  .vchain-wrap .git-logo-wrap.locked:hover,
+  .vchain-wrap .monitor-wrap.locked:hover {
+    transform: none !important;
+  }
+  .vchain-wrap .node-logo-wrap { width: 140px; }
+  .vchain-wrap .git-logo-wrap { width: 100px; }
+  .vchain-wrap .monitor-wrap { width: 160px; }
+
+  /* Hint do Git volta para baixo da logo (não está mais no rodapé) */
+  .vchain-wrap .git-logo-wrap .monitor-hint {
+    top: calc(100% + 6px);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: none;
+    margin: 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  /* Badge do Git volta ao padrão */
+  .vchain-wrap .git-logo-wrap .step-badge {
+    top: -10px;
+    right: -12px;
+  }
+
+  /* ========================================
      NODE.JS LOGO (end of LEFT branch)
      ======================================== */
   .node-logo-wrap {
@@ -3476,7 +3614,16 @@
       top: calc(11vh + 160px);
       bottom: calc(12vh + 150px);
     }
-    /* Middle branch + Git logo mobile */
+    /* Cadeia vertical (mobile) */
+    .vchain-wrap {
+      width: 200px;
+      transform: translate(-50%, calc(100% + 16px));
+    }
+    .vchain-wrap .node-logo-wrap { width: 110px; }
+    .vchain-wrap .git-logo-wrap { width: 78px; }
+    .vchain-wrap .monitor-wrap { width: 130px; }
+    .vchain-path.drawing { height: 110px; }
+    /* (legacy, ainda no DOM apenas pra compat) */
     .middle-branch-wrap {
       width: 140px;
       max-height: 120px;
@@ -3656,100 +3803,33 @@
       </svg>
     </div>
 
-    <!-- LEFT BRANCH (opens when install clicked) -->
-    <div class="left-branch-wrap" id="leftBranch">
-      <svg class="left-branch-svg" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
-        <path
-          class="left-branch-line"
-          d="M 300 100
-             C 260 95, 245 60, 205 65
-             C 170 70, 145 110, 105 100
-             C 70 92, 40 88, 12 92"/>
-        <circle class="left-branch-node" cx="12" cy="92" r="4"/>
-        <circle class="left-branch-tip" cx="300" cy="100" r="3.5">
-          <animateMotion
-            dur="1.4s"
-            fill="freeze"
-            begin="indefinite"
-            id="leftTipAnim"
-            keyPoints="0;1"
-            keyTimes="0;1"
-            path="M 0 0
-                  C -40 -5, -55 -40, -95 -35
-                  C -130 -30, -155 10, -195 0
-                  C -230 -8, -260 -12, -288 -8"/>
+    <!-- VERTICAL CHAIN — Node → Git → Claude Code (sequential reveal) -->
+    <div class="vchain-wrap" id="vchain">
+      <!-- Path 1: install button → Node -->
+      <svg class="vchain-path" id="vpath1" viewBox="0 0 6 180" preserveAspectRatio="none">
+        <path class="vchain-line" d="M 3 0 L 3 180" vector-effect="non-scaling-stroke"/>
+        <circle class="vchain-tip" cx="3" cy="0" r="3" vector-effect="non-scaling-stroke">
+          <animateMotion dur="1.4s" fill="freeze" begin="indefinite" id="vpath1TipAnim" path="M 0 0 L 0 180"/>
         </circle>
       </svg>
 
-      <!-- Node.js logo at end of LEFT branch (STEP 1) -->
-      <div class="node-logo-wrap" id="nodeLogoWrap">
+      <!-- Node.js logo -->
+      <div class="vchain-node node-logo-wrap" id="nodeLogoWrap">
         <img src="nodeJS.png" alt="Node.js">
         <div class="step-badge">01 ▸ PRIMEIRO</div>
         <div class="monitor-hint">Clique aqui</div>
       </div>
-    </div>
 
-    <!-- RIGHT BRANCH (opens to Computer/Install command) -->
-    <div class="right-branch-wrap" id="rightBranch">
-      <svg class="right-branch-svg" viewBox="0 0 300 200" preserveAspectRatio="xMidYMid meet">
-        <path
-          class="right-branch-line"
-          d="M 0 100
-             C 40 95, 55 60, 95 65
-             C 130 70, 155 110, 195 100
-             C 230 92, 260 88, 288 92"/>
-        <circle class="right-branch-node" cx="288" cy="92" r="4"/>
-        <circle class="right-branch-tip" cx="0" cy="100" r="3.5">
-          <animateMotion
-            dur="1.4s"
-            fill="freeze"
-            begin="indefinite"
-            id="rightTipAnim"
-            keyPoints="0;1"
-            keyTimes="0;1"
-            path="M 0 0
-                  C 40 -5, 55 -40, 95 -35
-                  C 130 -30, 155 10, 195 0
-                  C 230 -8, 260 -12, 288 -8"/>
+      <!-- Path 2: Node → Git -->
+      <svg class="vchain-path vchain-path-orange" id="vpath2" viewBox="0 0 6 180" preserveAspectRatio="none">
+        <path class="vchain-line" d="M 3 0 L 3 180" vector-effect="non-scaling-stroke"/>
+        <circle class="vchain-tip" cx="3" cy="0" r="3" vector-effect="non-scaling-stroke">
+          <animateMotion dur="1.4s" fill="freeze" begin="indefinite" id="vpath2TipAnim" path="M 0 0 L 0 180"/>
         </circle>
       </svg>
 
-      <!-- CRT MONITOR at end of right branch (STEP 3 — locked initially) -->
-      <div class="monitor-wrap locked" id="monitorWrap">
-        <img src="Pc_install.png" alt="Instalar">
-        <div class="lock-overlay">
-          <svg viewBox="0 0 7 9" aria-hidden="true">
-            <rect x="2" y="0" width="3" height="1"/>
-            <rect x="1" y="1" width="1" height="3"/>
-            <rect x="5" y="1" width="1" height="3"/>
-            <rect x="0" y="4" width="7" height="5"/>
-          </svg>
-        </div>
-        <div class="step-badge">03 ▸ ÚLTIMO</div>
-        <div class="monitor-hint" id="monitorHint">ABRA O GIT</div>
-      </div>
-    </div>
-
-    <!-- MIDDLE BRANCH (vertical, opens to Git) -->
-    <div class="middle-branch-wrap" id="middleBranch">
-      <svg class="middle-branch-svg" viewBox="0 0 6 200" preserveAspectRatio="none">
-        <path
-          class="middle-branch-line"
-          d="M 3 0 L 3 200"
-          vector-effect="non-scaling-stroke"/>
-        <circle class="middle-branch-node" cx="3" cy="198" r="3" vector-effect="non-scaling-stroke"/>
-        <circle class="middle-branch-tip" cx="3" cy="0" r="2.5" vector-effect="non-scaling-stroke">
-          <animateMotion
-            dur="1.4s"
-            fill="freeze"
-            begin="indefinite"
-            id="middleTipAnim"
-            path="M 0 0 L 0 198"/>
-        </circle>
-      </svg>
-
-      <!-- Git logo at end of MIDDLE branch (STEP 2 — locked initially) -->
-      <div class="git-logo-wrap locked" id="gitLogoWrap">
+      <!-- Git logo -->
+      <div class="vchain-node git-logo-wrap locked" id="gitLogoWrap">
         <img src="git-logo.png" alt="Git">
         <div class="lock-overlay">
           <svg viewBox="0 0 7 9" aria-hidden="true">
@@ -3761,6 +3841,29 @@
         </div>
         <div class="step-badge">02 ▸ DEPOIS</div>
         <div class="monitor-hint" id="gitHint">ABRA NODE.JS</div>
+      </div>
+
+      <!-- Path 3: Git → Monitor -->
+      <svg class="vchain-path" id="vpath3" viewBox="0 0 6 180" preserveAspectRatio="none">
+        <path class="vchain-line" d="M 3 0 L 3 180" vector-effect="non-scaling-stroke"/>
+        <circle class="vchain-tip" cx="3" cy="0" r="3" vector-effect="non-scaling-stroke">
+          <animateMotion dur="1.4s" fill="freeze" begin="indefinite" id="vpath3TipAnim" path="M 0 0 L 0 180"/>
+        </circle>
+      </svg>
+
+      <!-- CRT MONITOR (Claude Code) -->
+      <div class="vchain-node monitor-wrap locked" id="monitorWrap">
+        <img src="Pc_install.png" alt="Instalar">
+        <div class="lock-overlay">
+          <svg viewBox="0 0 7 9" aria-hidden="true">
+            <rect x="2" y="0" width="3" height="1"/>
+            <rect x="1" y="1" width="1" height="3"/>
+            <rect x="5" y="1" width="1" height="3"/>
+            <rect x="0" y="4" width="7" height="5"/>
+          </svg>
+        </div>
+        <div class="step-badge">03 ▸ ÚLTIMO</div>
+        <div class="monitor-hint" id="monitorHint">ABRA O GIT</div>
       </div>
     </div>
 
@@ -4156,8 +4259,6 @@
     const button = document.getElementById('mainButton');
     const lightPath = document.getElementById('lightPath');
     const installButton = document.getElementById('installButton');
-    const leftBranch = document.getElementById('leftBranch');
-    const rightBranch = document.getElementById('rightBranch');
     const monitorWrap = document.getElementById('monitorWrap');
     const nodeLogoWrap = document.getElementById('nodeLogoWrap');
     const tvOverlay = document.getElementById('tvOverlay');
@@ -4174,12 +4275,15 @@
     const nodeHomeBtn = document.getElementById('nodeHomeBtn');
     const osTabs = document.querySelectorAll('#nodeOverlay .os-tab');
     const tipAnim = document.getElementById('tipAnim');
-    const leftTipAnim = document.getElementById('leftTipAnim');
-    const rightTipAnim = document.getElementById('rightTipAnim');
 
-    // GIT refs
-    const middleBranch = document.getElementById('middleBranch');
-    const middleTipAnim = document.getElementById('middleTipAnim');
+    // VERTICAL CHAIN refs (Install → Node → Git → Monitor)
+    const vchain = document.getElementById('vchain');
+    const vpath1 = document.getElementById('vpath1');
+    const vpath2 = document.getElementById('vpath2');
+    const vpath3 = document.getElementById('vpath3');
+    const vpath1TipAnim = document.getElementById('vpath1TipAnim');
+    const vpath2TipAnim = document.getElementById('vpath2TipAnim');
+    const vpath3TipAnim = document.getElementById('vpath3TipAnim');
     const gitLogoWrap = document.getElementById('gitLogoWrap');
     const gitOverlay = document.getElementById('gitOverlay');
     const gitCmdText = document.getElementById('gitCmdText');
@@ -4438,41 +4542,61 @@
       if (monitorHint) monitorHint.textContent = 'ABRA O GIT';
     }
 
+    /* Auto-pan helper — centraliza um elemento na viewport */
+    function panToElement(el, opts) {
+      if (!el) return;
+      const offsetVh = (opts && opts.offsetVh) || 0.5; // 0.5 = centro da viewport
+      const duration = (opts && opts.duration) || 900;
+      const rect = el.getBoundingClientRect();
+      const centerY = rect.top + rect.height / 2;
+      const desiredY = window.innerHeight * offsetVh;
+      const delta = desiredY - centerY;
+      panY += delta;
+      world.style.transition = `transform ${duration}ms cubic-bezier(0.65, 0, 0.35, 1)`;
+      world.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
+      setTimeout(() => {
+        world.style.transition = '';
+        updateResetViewVisibility();
+      }, duration + 50);
+    }
+
+    function revealVNode(node) {
+      if (!node) return;
+      node.classList.add('revealed');
+    }
+
+    function drawVPath(path, tipAnim) {
+      if (!path) return;
+      path.classList.remove('drawing');
+      void path.offsetWidth;
+      path.classList.add('drawing');
+      if (tipAnim) { try { tipAnim.beginElement(); } catch (e) {} }
+    }
+
+    function resetVChain() {
+      [vpath1, vpath2, vpath3].forEach(p => p && p.classList.remove('drawing'));
+      [nodeLogoWrap, gitLogoWrap, monitorWrap].forEach(n => n && n.classList.remove('revealed', 'next-step', 'lit'));
+    }
+
     installButton.addEventListener('click', (e) => {
       e.stopPropagation();
       if (installButton.classList.contains('lit')) {
         installButton.classList.remove('lit');
-        leftBranch.classList.remove('drawing');
-        rightBranch.classList.remove('drawing');
-        middleBranch.classList.remove('drawing');
+        resetVChain();
         lockMonitor();
-        nodeLogoWrap.classList.remove('next-step', 'lit');
-        gitLogoWrap.classList.remove('next-step');
-        monitorWrap.classList.remove('next-step');
-        // Revert sequence
         installButton.classList.add('hint-active');
       } else {
         installButton.classList.add('lit', 'just-lit');
         setTimeout(() => installButton.classList.remove('just-lit'), 700);
-        leftBranch.classList.remove('drawing');
-        rightBranch.classList.remove('drawing');
-        middleBranch.classList.remove('drawing');
-        void leftBranch.offsetWidth;
-        void rightBranch.offsetWidth;
-        void middleBranch.offsetWidth;
-        leftBranch.classList.add('drawing');
-        rightBranch.classList.add('drawing');
-        middleBranch.classList.add('drawing');
-        try { leftTipAnim.beginElement(); } catch (e) {}
-        try { rightTipAnim.beginElement(); } catch (e) {}
-        try { middleTipAnim.beginElement(); } catch (e) {}
+        resetVChain();
         lockMonitor();
-        // Sequence done — Node é o primeiro passo, marca como next-step
-        installButton.classList.remove('hint-active');
-        nodeLogoWrap.classList.remove('next-step', 'lit');
-        gitLogoWrap.classList.remove('next-step');
-        monitorWrap.classList.remove('next-step');
+        // Desenha PATH 1 + revela NODE.JS
+        drawVPath(vpath1, vpath1TipAnim);
+        setTimeout(() => revealVNode(nodeLogoWrap), 600);
         setTimeout(() => nodeLogoWrap.classList.add('next-step'), 1400);
+        // Auto-pan pra centrar o Node depois que aparecer
+        setTimeout(() => panToElement(nodeLogoWrap, { offsetVh: 0.55 }), 800);
+        installButton.classList.remove('hint-active');
       }
     });
 
@@ -4856,18 +4980,24 @@
 
     nodeBackBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // CONTINUAR — só fecha o Node e destaca o próximo passo (Git)
+      // CONTINUAR — fecha Node, desenha vpath2, revela Git, faz auto-pan
       closeNodeOverlay();
       hasOpenedNode = true;
-      if (gitLogoWrap.classList.contains('locked')) {
-        gitLogoWrap.classList.remove('locked');
-        gitLogoWrap.classList.add('unlocking');
-        if (gitHint) gitHint.textContent = 'Clique aqui';
-        setTimeout(() => gitLogoWrap.classList.remove('unlocking'), 900);
-      }
-      // Tira destaque do Node, dá destaque para o Git
       nodeLogoWrap.classList.remove('next-step');
-      gitLogoWrap.classList.add('next-step');
+      // Desenha caminho para o Git
+      drawVPath(vpath2, vpath2TipAnim);
+      setTimeout(() => {
+        revealVNode(gitLogoWrap);
+        if (gitLogoWrap.classList.contains('locked')) {
+          gitLogoWrap.classList.remove('locked');
+          gitLogoWrap.classList.add('unlocking');
+          if (gitHint) gitHint.textContent = 'Clique aqui';
+          setTimeout(() => gitLogoWrap.classList.remove('unlocking'), 900);
+        }
+      }, 600);
+      setTimeout(() => gitLogoWrap.classList.add('next-step'), 1400);
+      // Auto-pan pra trazer o Git pra viewport
+      setTimeout(() => panToElement(gitLogoWrap, { offsetVh: 0.55 }), 800);
     });
 
     /* ========================================
@@ -4949,18 +5079,22 @@
 
     gitContinueBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // CONTINUAR — só fecha o Git e destaca o próximo passo (Claude Code)
+      // CONTINUAR — fecha Git, desenha vpath3, revela Monitor, auto-pan
       closeGitOverlay();
       hasOpenedGit = true;
-      if (monitorWrap.classList.contains('locked')) {
-        monitorWrap.classList.remove('locked');
-        monitorWrap.classList.add('unlocking');
-        if (monitorHint) monitorHint.textContent = 'Clique aqui';
-        setTimeout(() => monitorWrap.classList.remove('unlocking'), 900);
-      }
-      // Tira destaque do Git, dá destaque para o Monitor
       gitLogoWrap.classList.remove('next-step');
-      monitorWrap.classList.add('next-step');
+      drawVPath(vpath3, vpath3TipAnim);
+      setTimeout(() => {
+        revealVNode(monitorWrap);
+        if (monitorWrap.classList.contains('locked')) {
+          monitorWrap.classList.remove('locked');
+          monitorWrap.classList.add('unlocking');
+          if (monitorHint) monitorHint.textContent = 'Clique aqui';
+          setTimeout(() => monitorWrap.classList.remove('unlocking'), 900);
+        }
+      }, 600);
+      setTimeout(() => monitorWrap.classList.add('next-step'), 1400);
+      setTimeout(() => panToElement(monitorWrap, { offsetVh: 0.55 }), 800);
     });
 
     gitHomeBtn.addEventListener('click', (e) => {
@@ -4978,11 +5112,9 @@
       closeNodeOverlay();
       closeGitOverlay();
 
-      // Reset install button + branches (left/middle/right)
+      // Reset install button + cadeia vertical
       installButton.classList.remove('lit', 'just-lit');
-      leftBranch.classList.remove('drawing');
-      rightBranch.classList.remove('drawing');
-      middleBranch.classList.remove('drawing');
+      resetVChain();
 
       // Reset Claude Code main button
       if (isOn) turnOff();
