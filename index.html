@@ -1720,6 +1720,13 @@
     transition: opacity 0.8s ease, visibility 0s linear;
   }
 
+  /* Quando o AIOX entra em cena, esconde a instalacao principal */
+  body.aiox-mode .scene {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+
   /* AIOX arcade button — uses aiox-logo.png directly (no CSS bezel/disc) */
   .aiox-arcade-button {
     position: relative;
@@ -3874,7 +3881,7 @@
         <span class="text">Clique aqui</span>
       </span>
       <div class="install-shadow"></div>
-      <img class="install-img" src="Instala%C3%A7%C3%A3o.png" alt="Instalação">
+      <img class="install-img" src="instalacao.png" alt="Instalação">
       <span class="word-glow">Instalação</span>
     </button>
   </div>
@@ -3914,7 +3921,7 @@
         <span class="text">Clique aqui</span>
       </span>
       <div class="install-shadow"></div>
-      <img class="install-img" src="Instala%C3%A7%C3%A3o.png" alt="Instalação">
+      <img class="install-img" src="instalacao.png" alt="Instalação">
       <span class="word-glow">Instalação</span>
     </button>
 
@@ -4352,42 +4359,42 @@
 
     const TUTORIAL_STEPS = [
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/1.png',
+        img: 'instalacao-aiox/1.png',
         title: 'Bem-vindo ao AIOX-SQUAD',
         desc: 'Primeira pergunta: seu projeto é Greenfield (vida nova, do zero) ou Brownfield (algo que já existe e precisa de carinho)? Use as setas pra navegar.'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/2.png',
+        img: 'instalacao-aiox/2.png',
         title: 'Escolha sua IDE',
         desc: 'Use SPACE pra marcar, ENTER pra confirmar. Pode escolher mais de uma — Claude Code e Codex são as recomendadas (e, sinceramente, as melhores).'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/3.png',
+        img: 'instalacao-aiox/3.png',
         title: 'Qual seu stack?',
         desc: 'Diga ao AIOX qual stack você usa: Next.js, Angular, Go, Java, Rust, C# ou PHP. Não sabe? Escolhe None e deixa o AIOX decidir baseado no projeto.'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/4.png',
+        img: 'instalacao-aiox/4.png',
         title: 'Instalando o core',
         desc: 'Se já existe um CLAUDE.md no projeto, o AIOX pergunta: mesclar, sobrescrever, fazer backup ou pular. Dica de ouro: sempre vai de Merge — preserva o que já tem.'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/5.png',
+        img: 'instalacao-aiox/5.png',
         title: 'AGENTS.md também',
         desc: 'Mesma pergunta pro AGENTS.md. Confia: Merge é o caminho da paz. Ele preserva tudo que você já tinha e adiciona o que faltava sem dor.'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/6.png',
+        img: 'instalacao-aiox/6.png',
         title: 'Sincronização total',
         desc: 'Boundary rules, skills, Codex skills, IDE sync, registry de entidades — tudo sendo configurado em segundos. Você só assiste ao show de luzes verdes.'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/7.png',
+        img: 'instalacao-aiox/7.png',
         title: 'Variáveis de ambiente',
         desc: 'Arquivos .env e .env.example são mesclados, suas API keys ficam preservadas, .gitignore atualizado, core-config.yaml configurado. Tudo no jeitinho.'
       },
       {
-        img: 'Instala%C3%A7%C3%A3o%20AIOX/8.png',
+        img: 'instalacao-aiox/8.png',
         title: 'Reta final!',
         desc: 'Última escolha: Community (grátis, muito completo) ou Pro (com squads premium e suporte). Os dois são incríveis. Escolheu? ENTER e AIOX INSTALADO.'
       }
@@ -4788,6 +4795,8 @@
       // Hide marquee
       successMarquee.classList.remove('visible');
       if (marqueeTimer) { clearTimeout(marqueeTimer); marqueeTimer = null; }
+      // Esconde cena principal (instalacoes anteriores) — fica so o AIOX
+      document.body.classList.add('aiox-mode');
       // Reveal scene
       aioxScene.classList.add('revealed');
       // Start AIOX sequence: aioxArcadeButton hint active
@@ -5129,6 +5138,7 @@
       marqueeClickHint.classList.remove('visible');
 
       // Reset AIOX scene + command overlay + tutorial
+      document.body.classList.remove('aiox-mode');
       aioxScene.classList.remove('revealed');
       aioxArcadeButton.classList.remove('pressed');
       aioxLightPath.classList.remove('drawing');
