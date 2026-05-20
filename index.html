@@ -4164,12 +4164,12 @@
           [ Code first · Sleep later · Repeat ]
         </p>
         <div class="action-hint">
-          <span class="action-text">Clique para finalizar</span>
+          <span class="action-text">Clique para voltar ao início</span>
           <span class="action-arrow">▼</span>
         </div>
-        <button class="tv-btn" id="tutorialFinish" type="button">
-          <span class="icon">✓</span>
-          <span class="label">CONCLUIR</span>
+        <button class="tv-btn tv-btn-primary" id="tutorialFinish" type="button">
+          <span class="icon">⌂</span>
+          <span class="label">INÍCIO</span>
         </button>
       </div>
     </div>
@@ -4566,6 +4566,7 @@
     tutorialFinish.addEventListener('click', (e) => {
       e.stopPropagation();
       closeTutorial();
+      fullReset();
     });
 
     /* ========================================
