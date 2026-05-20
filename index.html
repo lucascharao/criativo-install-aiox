@@ -3621,17 +3621,21 @@
       top: calc(11vh + 160px);
       bottom: calc(12vh + 150px);
     }
-    /* Cena AIOX (mobile) — logo menor e mais acima pro install button aparecer */
+    /* Cena AIOX (mobile) — tudo na mesma tela: logo + path curto + install button */
     .aiox-scene {
-      padding: 4vh 0 12vh;
-      justify-content: flex-start;
-      gap: 14px;
+      padding: 2vh 0 4vh;
+      justify-content: space-between;
+      gap: 0;
+      height: 100dvh;
+      min-height: 100vh;
     }
-    .aiox-arcade-button { width: 200px; }
-    .aiox-scene .install-button { width: 240px; margin-top: auto; margin-bottom: 0; }
+    .aiox-arcade-button { width: 170px; }
+    .aiox-scene .install-button { width: 220px; }
+    /* Path bem curto entre arcade e install */
     .aiox-path-wrap {
-      top: calc(4vh + 200px);
-      bottom: calc(12vh + 90px);
+      top: calc(2vh + 170px + 6px);
+      bottom: calc(4vh + 90px + 6px);
+      height: auto;
     }
 
     /* Cadeia vertical (mobile) */
